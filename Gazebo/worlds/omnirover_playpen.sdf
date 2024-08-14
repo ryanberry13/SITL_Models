@@ -68,5 +68,115 @@
       <pose degrees="true">0 0 0.1 0 0 90</pose>
     </include>
 
+    <!-- Gimbal mount fixed to world. -->
+    <model name="mount">
+      <pose degrees="true">0 -5 0 0 0 90</pose>
+      <link name="mount_link">
+        <inertial>
+          <mass>10</mass>
+          <inertia>
+            <ixx>0.13733333</ixx>
+            <ixy>0.00</ixy>
+            <ixz>0.00</ixz>
+            <iyy>0.13733333</iyy>
+            <iyz>0.00</iyz>
+            <izz>0.008</izz>
+          </inertia>
+        </inertial>
+        <visual name="post_visual">
+          <pose>-0.2 0 0.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.04</radius>
+              <length>1.0</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>1 1 0</ambient>
+            <diffuse>1 1 0</diffuse>
+            <specular>0.1 0.1 0 1</specular>
+          </material>
+        </visual>
+        <visual name="plate_visual">
+          <pose>-0.1 0 1.01 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.2</radius>
+              <length>0.02</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>1 1 0</ambient>
+            <diffuse>1 1 0</diffuse>
+            <specular>0.1 0.1 0 1</specular>
+          </material>
+        </visual>
+        <collision name="post_collision">
+          <pose>-0.2 0 0.5 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.04</radius>
+              <length>1.0</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <collision name="plate_collision">
+          <pose>-0.1 0 1.01 0 0 0</pose>
+          <geometry>
+            <cylinder>
+              <radius>0.2</radius>
+              <length>0.02</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+      <joint name="mount_joint" type="fixed">
+        <parent>world</parent>
+        <child>mount_link</child>
+      </joint>
+
+      <include>
+        <uri>model://gimbal_small_3d</uri>
+        <name>gimbal</name>
+        <pose degrees="true">0 0 0.9055 90 0 90</pose>    
+      </include>
+      <joint name="gimbal_joint" type="revolute">
+        <parent>mount_link</parent>
+        <child>gimbal::base_link</child>
+        <axis>
+          <dynamics>
+            <damping>0.5</damping>
+          </dynamics>
+          <limit>
+            <lower>0</lower>
+            <upper>0</upper>
+          </limit>
+          <xyz>0 0 1</xyz>
+        </axis>
+      </joint>
+
+      <plugin name="gz::sim::systems::JointStatePublisher"
+        filename="gz-sim-joint-state-publisher-system">
+      </plugin>
+      <plugin name="gz::sim::systems::JointPositionController"
+        filename="gz-sim-joint-position-controller-system">
+        <joint_name>gimbal::yaw_joint</joint_name>
+        <topic>/gimbal/cmd_yaw</topic>
+        <p_gain>2</p_gain>
+      </plugin>
+      <plugin name="gz::sim::systems::JointPositionController"
+        filename="gz-sim-joint-position-controller-system">
+        <joint_name>gimbal::roll_joint</joint_name>
+        <topic>/gimbal/cmd_roll</topic>
+        <p_gain>2</p_gain>
+      </plugin>
+      <plugin name="gz::sim::systems::JointPositionController"
+        filename="gz-sim-joint-position-controller-system">
+        <joint_name>gimbal::pitch_joint</joint_name>
+        <topic>/gimbal/cmd_pitch</topic>
+        <p_gain>2</p_gain>
+      </plugin>
+    </model>
+
   </world>
 </sdf>
