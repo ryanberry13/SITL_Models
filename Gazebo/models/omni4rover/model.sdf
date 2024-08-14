@@ -182,6 +182,7 @@
       <cmd_min>-1.0e4</cmd_min>
     </plugin>
 
+    <!--
     <plugin name="ArduPilotPlugin"
       filename="ArduPilotPlugin">
       <fdm_addr>127.0.0.1</fdm_addr>
@@ -237,6 +238,7 @@
         <cmd_topic>/model/omni4rover/joint/front_left_wheel_joint/cmd_vel</cmd_topic>
       </control>
     </plugin>
+    -->
 
   </model>
 </sdf>
