@@ -1,5 +1,7 @@
 """"
-Move the omnirover - for testing the GSoC 2024 Camera Tracking project
+Move the omnirover
+
+For testing the GSoC 2024 Camera Tracking project
 """
 
 import time
