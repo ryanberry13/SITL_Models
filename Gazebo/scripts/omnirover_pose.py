@@ -67,66 +67,49 @@ class Pose:
 
     def __str__(self):
         s = (
-            "world: " + str(self.world)
+            "world: "
+            + str(self.world)
             + "\n"
-            + "body: " + str(self.body)
+            + "body: "
+            + str(self.body)
             + "\n"
-            + "position: " + str(self.position)
+            + "position: "
+            + str(self.position)
             + "\n"
-            + "orientation: " + str(self.orientation)
+            + "orientation: "
+            + str(self.orientation)
         )
         return s
 
 
 class PoseMonitor:
     """
-    Simple open loop controller for the OmniRover
+    Calculate camera and target pose from pose_v messages.
     """
 
     def __init__(self):
-        WORLD_NAME = "playpen"
-        TARGET_NAME = "omni4rover"
-        CAMERA_NAME = "mount"
+        self.WORLD_NAME = "playpen"
+        self.TARGET_NAME = "omni4rover"
+        self.CAMERA_NAME = "mount"
 
         self._node = Node()
 
-        # poses
+        # subscribe to pose_v messages
+        self._target_do_print_msg = True
         self._target_pose_v_msg = None
-        self._target_pose_v_topic = f"/model/{TARGET_NAME}/pose"
+        self._target_pose_v_topic = f"/model/{self.TARGET_NAME}/pose"
         self._target_pose_v_sub = self._node.subscribe(
             Pose_V, self._target_pose_v_topic, self.target_pose_v_cb
         )
-        # print(self._target_pose_v_sub)
 
         self._camera_do_print_msg = True
         self._camera_pose_v_msg = None
-        self._camera_pose_v_topic = f"/model/{CAMERA_NAME}/pose"
+        self._camera_pose_v_topic = f"/model/{self.CAMERA_NAME}/pose"
         self._camera_pose_v_sub = self._node.subscribe(
             Pose_V, self._camera_pose_v_topic, self.camera_pose_v_cb
         )
-        # print(self._camera_pose_sub)
 
-        # joint states (model)
-        # self._target_model_msg = None
-        # self._target_model_topic = f"/world/{WORLD_NAME}/model/{TARGET_NAME}/joint_state"
-        # self._target_model_sub = self._node.subscribe(
-        #     Model, self._target_model_topic, self.target_model_cb
-        # )
-        # print(self._target_model_sub)
-
-        # self._camera_model_msg = None
-        # self._camera_model_topic = f"/world/{WORLD_NAME}/model/{CAMERA_NAME}/joint_state"
-        # self._camera_model_sub = self._node.subscribe(
-        #     Model, self._camera_model_topic, self.camera_model_cb
-        # )
-        # print(self._camera_model_sub)
-
-        # self._clock_msg = None
-        # self._clock_topic = "/world/playpen/clock"
-        # self._clock_sub = self._node.subscribe(Clock, self._clock_topic, self.clock_cb)
-        # print(self._clock_sub)
-
-        # Update thread
+        # create update thread
         self._update_thread = Thread(target=self.update)
         self._update_thread.run()
 
@@ -134,9 +117,11 @@ class PoseMonitor:
         with mutex:
             self._target_pose_v_msg = msg
 
-        pose = self._target_pose_v_msg.pose[0]
-        # print("target pose")
-        # print(pose.position)
+        if self._target_do_print_msg:
+            self._target_do_print_msg = False
+            print("target pose")
+            for pose in self._target_pose_v_msg.pose:
+                print(pose.name)
 
     def camera_pose_v_cb(self, msg: Pose_V):
         with mutex:
@@ -148,35 +133,19 @@ class PoseMonitor:
             for pose in self._camera_pose_v_msg.pose:
                 print(pose.name)
 
-    # def target_model_cb(self, msg: Model):
-    #     with mutex:
-    #         self._target_model_msg = msg
-    #
-    #     model = self._target_model_msg
-    #     print("target model")
-    #     print(model)
-
-    # def camera_model_cb(self, msg: Model):
-    #     with mutex:
-    #         self._camera_model_msg = msg
-    #
-    #     model = self._camera_model_msg
-    #     print("camera model")
-    #     print(model)
-
-    # def clock_cb(self, msg: Clock):
-    #     with mutex:
-    #         self._clock_msg = msg
-    #         print(msg)
-
     def update(self):
         update_rate = 1.0
         update_period = 1.0 / update_rate
         while True:
             if self._camera_pose_v_msg is not None:
-                world = "playpen"
+                world = self.WORLD_NAME
                 body = "mount::gimbal::pitch_link::camera"
                 self.body_to_world(self._camera_pose_v_msg, world, body)
+
+            if self._target_pose_v_msg is not None:
+                world = self.WORLD_NAME
+                body = "omni4rover"
+                self.body_to_world(self._target_pose_v_msg, world, body)
 
             time.sleep(update_period)
 
