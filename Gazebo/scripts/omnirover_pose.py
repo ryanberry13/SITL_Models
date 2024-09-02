@@ -41,6 +41,7 @@ import time
 import unittest
 
 from threading import Lock
+from threading import Thread
 
 from gz.msgs10.clock_pb2 import Clock
 from gz.msgs10.pose_v_pb2 import Pose_V
@@ -80,6 +81,7 @@ class PoseMonitor:
         self._target_pose_sub = self._node.subscribe(
             Pose_V, self._target_pose_topic, self.target_pose_cb
         )
+        self._target_poses = {}
         # print(self._target_pose_sub)
 
         self._camera_print_msg = True
@@ -88,6 +90,7 @@ class PoseMonitor:
         self._camera_pose_sub = self._node.subscribe(
             Pose_V, self._camera_pose_topic, self.camera_pose_cb
         )
+        self._camera_poses = {}
         # print(self._camera_pose_sub)
 
         # joint states (model)
@@ -109,6 +112,10 @@ class PoseMonitor:
         # self._clock_topic = "/world/playpen/clock"
         # self._clock_sub = self._node.subscribe(Clock, self._clock_topic, self.clock_cb)
         # print(self._clock_sub)
+
+        # Update thread
+        self._update_thread = Thread(target=self.update)
+        self._update_thread.run()
 
     def target_pose_cb(self, msg: Pose_V):
         with mutex:
@@ -148,6 +155,43 @@ class PoseMonitor:
     #     with mutex:
     #         self._clock_msg = msg
     #         print(msg)
+
+    def update(self):
+        update_rate = 1.0
+        update_period = 1.0 / update_rate
+        # count = 0
+        while True:
+            # print(f"count: {count}")
+            # count += 1
+
+            if self._camera_pose_msg is not None:
+                # create dictionaries for camera pose
+                self._camera_poses.clear()
+                for pose in self._camera_pose_msg.pose:
+                    self._camera_poses[pose.name] = pose
+
+                # determine transform chain for
+                # mount::gimbal::pitch_link::camera -> world (=playpen)
+                world = "playpen"
+                source = "mount::gimbal::pitch_link::camera"
+
+                child = source
+                print(f"{child}")
+                parent = None
+                while parent != world:
+                    pose = self._camera_poses[child]
+                    for data in pose.header.data:
+                        if data.key == "frame_id":
+                            parent = data.value[0]
+                            break
+
+                    # print(f"child:  {child}")
+                    # print(f"parent: {parent}\n")
+                    print(f"--> {child}")
+                    child = parent
+                print(f"--> {parent}\n")
+
+            time.sleep(update_period)
 
 
 def main():
