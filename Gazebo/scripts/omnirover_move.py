@@ -86,7 +86,7 @@ def main():
     loop_duration_s = 1.0 / loop_rate_hz
 
     try:
-        speed = 5.0
+        speed = 10.0
         counter = 0
         delay_factor = 200
         while True:
