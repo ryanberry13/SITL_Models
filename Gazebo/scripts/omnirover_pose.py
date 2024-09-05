@@ -233,7 +233,7 @@ class PoseMonitor:
 
             if (self._target_pose is not None) and (self._camera_pose is not None):
                 self._camera_info = CameraInformation(self._camera_info_msg)
-                # print(self._camera_info)
+                print(self._camera_info)
 
                 # projection matrix (=opencv camera_matrix)
                 camera_matrix = self._camera_info.camera_matrix
@@ -414,7 +414,7 @@ def project_point(camera_matrix, camera_pose, target_pose):
     X_c_b = np.matmul(X_c_w, X_w_b)
     # print(X_c_b)
 
-    # transform the origin of the target to the camera frame
+    # transform the origin of the target to the camera sensor frame
     v_b_b = np.transpose([[0, 0, 0, 1]])
     v_b_c = np.matmul(X_c_b, v_b_b)
     # print(v_b_b)
@@ -424,20 +424,22 @@ def project_point(camera_matrix, camera_pose, target_pose):
     #   camera sensor frame: FRU
     #   camera optical frame: RDF
     t = [0.0, 0.0, 0.0]
-    q = euler.euler2quat(np.radians(90.0), 0.0, np.radians(90.0))
+    q = euler.euler2quat(np.radians(-90.0), 0.0, np.radians(-90.0))
     r = quaternions.quat2mat(q)
     z = [1.0, 1.0, 1.0]
     X_c_o = affines.compose(t, r, z)
     X_o_c = np.linalg.inv(X_c_o)
     v_b_o = np.matmul(X_o_c, v_b_c)
-    # print(f"v_b_o:\n{v_b_o[0:3]}")
 
     # project the target to screen space
     uvw = np.matmul(P, v_b_o)
     u = uvw[0, 0]
     v = uvw[1, 0]
     w = uvw[2, 0]
-    # print(f"u: {u / w:0.1f}, v: {v / w:0.1f}")
+
+    print(f"XYZ: [{v_b_c[0, 0]:.2f}, {v_b_c[1, 0]:.2f}, {v_b_c[2, 0]:.2f}]")
+    print(f"xyz: [{v_b_o[0, 0]:.2f}, {v_b_o[1, 0]:.2f}, {v_b_o[2, 0]:.2f}]")
+    print(f"uv:  [{uvw[0, 0]/uvw[2, 0]:.2f}, {uvw[1, 0]/uvw[2, 0]:.2f}]")
 
     # using opencv
     # https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#projectpoints
