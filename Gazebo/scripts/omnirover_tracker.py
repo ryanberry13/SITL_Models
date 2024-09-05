@@ -1,45 +1,77 @@
 """"
-Obtain the pose of the camera and omnirover
+Calculate the position in pixels of a tracked object in the camera image.
 
 For testing the GSoC 2024 Camera Tracking project
 
+Usage
+------
 
-Gazebo Topics
--------------
+The defaults in this script use the `omnirover_playpen.sdf` world 
 
-Static pose information.
-/world/playpen/pose/info
+gz sim -v4 -r omnirover_playpen.sdf
 
-The dynamic pose info does not provide any information about the model tree
-and provides relative poses rather than world poses.
-/world/playpen/dynamic_pose/info
+which contains a 3DoF gimbal camera on a model named `mount` and a
+rover named `omni4rover`. These are the `camera_model` and `target_model`
+respectively.
 
-/gui/camera/pose
+Video streaming is enabled with:
 
-Plugin: OdometryPublisher
-pose: pose of model in the ENU world frame adjusted for optional offset.
-odometry: pose and twist in the ENU world frame.
-odometry_wkth_covariance: odometry with estimated covariance in ENU frame. 
+gz topic -t /world/playpen/model/mount/model/gimbal/link/pitch_link/sensor/camera/image/enable_streaming -m gz.msgs.Boolean -p "data: 1"
 
-/model/omni4rover/odometry
-/model/omni4rover/odometry_with_covariance
+The script may then be run:
+
+python ./src/ardupilot_sitl_models/Gazebo/scripts/omnirover_tracker.py
+
+To move the rover run the script:
+
+python ./src/ardupilot_sitl_models/Gazebo/scripts/omnirover_move.py
+
+Alternatively move the gimbal axes manually with:
+
+gz topic -t /gimbal/cmd_roll -m gz.msgs.Double -p "data: 0.5" 
+gz topic -t /gimbal/cmd_pitch -m gz.msgs.Double -p "data: 0.5" 
+gz topic -t /gimbal/cmd_yaw -m gz.msgs.Double -p "data: 0.5" 
+
+Gazebo
+------
+
+The script requires the following topics provided by plugins or senors:
+
+Plugin: `PosePublisher`
+
+<plugin
+  name="gz::sim::systems::PosePublisher"
+  filename="gz-sim-pose-publisher-system">
+  <publish_link_pose>1</publish_link_pose>
+  <publish_visual_pose>0</publish_visual_pose>
+  <publish_collision_pose>0</publish_collision_pose>
+  <publish_sensor_pose>1</publish_sensor_pose>
+  <publish_model_pose>1</publish_model_pose>
+  <publish_nested_model_pose>1</publish_nested_model_pose>
+  <use_pose_vector_msg>1</use_pose_vector_msg>
+  <update_frequency>50</update_frequency>
+</plugin>
+
+/model/mount/pose
 /model/omni4rover/pose
 
-Plugin: JointStatePublisher
-joint_state: gz.msgs.Model
-/world/playpen/model/omni4rover/joint_state
-
-
-Camera Sensor
+Sensor: camera
 /world/playpen/model/mount/model/gimbal/link/pitch_link/sensor/camera/camera_info
-/world/playpen/model/mount/model/gimbal/link/pitch_link/sensor/camera/image
 
-Usage
------
+Note: if the plugin `OdometryPublisher` is enabled the `tf_topic`
+must be altered from the default
 
-python ./src/ardupilot_sitl_models/Gazebo/scripts/omnirover_pose.py
+<plugin
+  name="gz::sim::systems::OdometryPublisher"
+  filename="gz-sim-odometry-publisher-system">
+  <odom_frame>odom</odom_frame>
+  <robot_base_frame>mount_link</robot_base_frame>
+  <dimensions>3</dimensions>
+  <tf_topic>/model/mount/tf</tf_topic>
+</plugin>
 
-
+otherwise the `OdometryPublisher` will also publish to `/model/{model}/pose`
+conflicting with the output from the `PosePublisher`
 """
 
 import copy
