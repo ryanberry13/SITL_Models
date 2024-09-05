@@ -208,19 +208,13 @@ class CameraPanel(wx.Panel):
         self._frame_lock = threading.Lock()
         self._latest_frame = None
 
-        print("Initialising stream...")
+        print("Waiting for video stream...")
         waited = 0
         while not self._video.frame_available():
             waited += 1
             print("\r  Frame not available (x{})".format(waited), end="")
             cv2.waitKey(30)
-        print("\nSuccess!\nStarting streaming")
-
-        # Load a pretrained YOLO model
-        # self._model = YOLO("yolov8n.pt")
-
-        # Display model information
-        # self._model.info()
+        print("\nSuccess!: video stream available")
 
         if self._video.frame_available():
             # Only retrieve and display a frame if it's new
@@ -248,36 +242,8 @@ class CameraPanel(wx.Panel):
         if self._video.frame_available():
             frame = copy.deepcopy(self._video.frame())
 
-            # YOLO object detection
-            # results = self._model.track(frame, stream=True)
-            #
-            # for r in results:
-            #     boxes = r.boxes
-            #     for box in boxes:
-            #         # bounding box
-            #         cls = int(box.cls)
-            #         name = self._model.names[cls]
-            #         # if not (
-            #         #     name == "bus"
-            #         #     or name == "boat"
-            #         #     or name == "skateboard"
-            #         #     or name == "truck"
-            #         # ):
-            #         #     continue
-            #
-            #         print("Classification is: ", name, ", [", box.conf, "]")
-            #
-            #         # Draw bounding rectangle
-            #         x1, y1, x2, y2 = box.xyxy[0]
-            #
-            #         # Convert to int values
-            #         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-            #
-            #         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)
-
-            # create 50x50 px square about image point
+            # create 50x50 px green square about image point
             image_point = self.pose_monitor.image_point()
-            # print(f"image_point: {image_point}")
             u = int(image_point[0])
             v = int(image_point[1])
             x1 = u - 25
