@@ -198,11 +198,11 @@ class Video:
 
 
 class CameraPanel(wx.Panel):
-    def __init__(self, parent, video, pose_monitor, fps=30):
+    def __init__(self, parent, video, camera_target_tracker, fps=30):
         wx.Panel.__init__(self, parent)
 
         self._video = video
-        self.pose_monitor = pose_monitor
+        self._camera_target_tracker = camera_target_tracker
 
         # Shared between threads
         self._frame_lock = threading.Lock()
@@ -214,7 +214,7 @@ class CameraPanel(wx.Panel):
             waited += 1
             print("\r  Frame not available (x{})".format(waited), end="")
             cv2.waitKey(30)
-        print("\nSuccess!: video stream available")
+        print("\nSuccess! Video stream available")
 
         if self._video.frame_available():
             # Only retrieve and display a frame if it's new
@@ -243,7 +243,7 @@ class CameraPanel(wx.Panel):
             frame = copy.deepcopy(self._video.frame())
 
             # create 50x50 px green square about image point
-            image_point = self.pose_monitor.image_point()
+            image_point = self._camera_target_tracker.image_point()
             u = int(image_point[0])
             v = int(image_point[1])
             x1 = u - 25
@@ -332,16 +332,36 @@ class CameraInformation:
         return np.array(P)
 
 
-# TODO: come up with a better name
-class PoseMonitor:
+class CameraTargetTracker:
     """
-    Calculate camera and target pose from pose_v messages.
+    Calculate the position in pixels of a tracked object in the camera image.
     """
 
-    def __init__(self):
-        self.WORLD_NAME = "playpen"
-        self.TARGET_NAME = "omni4rover"
-        self.CAMERA_NAME = "mount"
+    def __init__(
+        self,
+        world_name="playpen",
+        target_model_name="omni4rover",
+        camera_model_name="mount",
+        gimbal_model_name="gimbal",
+        camera_link_name="pitch_link",
+        camera_sensor_name="camera",
+    ):
+        self._world_name = world_name
+        self._target_model_name = target_model_name
+        self._camera_model_name = camera_model_name
+        self._gimbal_model_name = gimbal_model_name
+        self._camera_link_name = camera_link_name
+        self._camera_sensor_name = camera_sensor_name
+
+        # derive frame_ids
+        self._target_frame_id = self._target_model_name
+
+        self._camera_frame_id = (
+            f"{self._camera_model_name}"
+            + f"::{self._gimbal_model_name}"
+            + f"::{self._camera_link_name}"
+            + f"::{self._camera_sensor_name}"
+        )
 
         self._node = Node()
 
@@ -351,7 +371,7 @@ class PoseMonitor:
         # subscribe to pose_v messages
         self._target_pose_v_do_print_msg = False
         self._target_pose_v_msg = None
-        self._target_pose_v_topic = f"/model/{self.TARGET_NAME}/pose"
+        self._target_pose_v_topic = f"/model/{self._target_model_name}/pose"
         self._target_pose_v_sub = self._node.subscribe(
             Pose_V, self._target_pose_v_topic, self.target_pose_v_cb
         )
@@ -359,7 +379,7 @@ class PoseMonitor:
 
         self._camera_pose_v_do_print_msg = False
         self._camera_pose_v_msg = None
-        self._camera_pose_v_topic = f"/model/{self.CAMERA_NAME}/pose"
+        self._camera_pose_v_topic = f"/model/{self._camera_model_name}/pose"
         self._camera_pose_v_sub = self._node.subscribe(
             Pose_V, self._camera_pose_v_topic, self.camera_pose_v_cb
         )
@@ -368,8 +388,14 @@ class PoseMonitor:
         # subscribe to camera_info messages
         self._camera_info_do_print_msg = False
         self._camera_info_msg = None
-        # self._camera_info_topic = f"/world/{self.WORLD_NAME}/model/{self.CAMERA_NAME}/model/gimbal/link/pitch_link/sensor/camera/camera_info"
-        self._camera_info_topic = "/world/playpen/model/mount/model/gimbal/link/pitch_link/sensor/camera/camera_info"
+        self._camera_info_topic = (
+            f"/world/{self._world_name}"
+            + f"/model/{self._camera_model_name}"
+            + f"/model/{self._gimbal_model_name}"
+            + f"/link/{self._camera_link_name}"
+            + f"/sensor/{self._camera_sensor_name}"
+            + f"/camera_info"
+        )
         self._camera_info_sub = self._node.subscribe(
             CameraInfo, self._camera_info_topic, self.camera_info_cb
         )
@@ -416,8 +442,8 @@ class PoseMonitor:
         update_period = 1.0 / update_rate
         while True:
             if self._camera_pose_v_msg is not None:
-                world = self.WORLD_NAME
-                body = "mount::gimbal::pitch_link::camera"
+                world = self._world_name
+                body = self._camera_frame_id
                 self._camera_pose = self.body_to_world(
                     self._camera_pose_v_msg, world, body
                 )
@@ -425,8 +451,8 @@ class PoseMonitor:
                 # print()
 
             if self._target_pose_v_msg is not None:
-                world = self.WORLD_NAME
-                body = "omni4rover"
+                world = self._world_name
+                body = self._target_frame_id
                 self._target_pose = self.body_to_world(
                     self._target_pose_v_msg, world, body
                 )
@@ -443,7 +469,7 @@ class PoseMonitor:
 
                 # projection matrix (=opencv camera_matrix)
                 camera_matrix = self._camera_info.camera_matrix
-                self._image_point = project_point(
+                self._image_point = CameraTargetTracker.project_point(
                     camera_matrix, self._camera_pose, self._target_pose
                 )
 
@@ -475,7 +501,7 @@ class PoseMonitor:
             child = parent
 
             # convert pose to an affine transform
-            X_p_c = np.array(self.pose_to_tf(pose))
+            X_p_c = np.array(self.pose_to_affine(pose))
             X = np.matmul(X_p_c, X)
 
         # print(f"--> {parent}")
@@ -485,9 +511,9 @@ class PoseMonitor:
         pose = Pose(world, body, t, q)
         return pose
 
-    def pose_to_tf(self, pose):
+    def pose_to_affine(self, pose):
         """
-        Convert a pose message into an transforms3d.affine
+        Convert a pose message into an transforms3d.affines
         """
         t = [pose.position.x, pose.position.y, pose.position.z]
         q = [
@@ -499,192 +525,120 @@ class PoseMonitor:
         r = quaternions.quat2mat(q)
         z = [1.0, 1.0, 1.0]
         a = affines.compose(t, r, z)
-        # print(f"p: {t}")
-        # print(f"q: {q}")
-        # print(f"r: {r}")
-        # print(f"a: {a}")
         return a
 
     def image_point(self):
         return self._image_point
 
+    @staticmethod
+    def project_point(camera_matrix, camera_pose, target_pose):
+        """
+        Given a camera matrix (camera intrinsics), a camera pose
+        and a target pose in the world (ENU) frame, calculate the pixel
+        position of the target in the camera image
 
-def project_point(camera_matrix, camera_pose, target_pose):
-    """
-    camera info
-    header {
-      stamp {
-        sec: 1353
-        nsec: 300000000
-      }
-      data {
-        key: "frame_id"
-        value: "mount::gimbal::pitch_link::camera"
-      }
-    }
-    width: 640
-    height: 480
-    distortion {
-      k: 0
-      k: 0
-      k: 0
-      k: 0
-      k: 0
-    }
-    intrinsics {
-      k: 205.46962738037109
-      k: 0
-      k: 320
-      k: 0
-      k: 205.46965599060059
-      k: 240
-      k: 0
-      k: 0
-      k: 1
-    }
-    projection {
-      p: 205.46962738037109   -> fx [0]
-      p: 0                    -> s  [1]
-      p: 320                  -> cx [2]
-      p: 0                    -> tx [3]
-      p: 0
-      p: 205.46965599060059   -> fy [5]
-      p: 240                  -> cy [6]
-      p: 0                    -> ty [7]
-      p: 0
-      p: 0
-      p: 1
-      p: 0
-    }
-    rectification_matrix: 1
-    rectification_matrix: 0
-    rectification_matrix: 0
-    rectification_matrix: 0
-    rectification_matrix: 1
-    rectification_matrix: 0
-    rectification_matrix: 0
-    rectification_matrix: 0
-    rectification_matrix: 1
-    """
-    # from gz-msgs/src/gz/msgs/proto/camera_info.proto
-    #
-    # fx is the X Focal length
-    # fy is the Y Focal length
-    # cx is the X principal point
-    # cy is the Y principal point
-    # tx is the X position of the second camera in this camera's frame.
-    # ty is the Y position of the second camera in this camera's frame.
-    # s is the axis skew.
-    #
-    # intrinsic camera matrix for the raw (distorted) images can be
-    # generated using the fx, fy, cx, and cy parameters contained in this
-    # message. For example the intrinsic camera matrix K would be:
-    #      [fx  s cx]
-    #  K = [ 0 fy cy]
-    #      [ 0  0  1]
-    # Projects 3D points in the camera coordinate frame to 2D pixel
-    # coordinates using the focal lengths (fx, fy) and principal point
-    # (cx, cy).
-    #
-    # The projection/camera matrix can be generated using the values in
-    # this message. For example, the projection matrix P would be:
-    #
-    #     [fx   s cx tx]
-    # P = [ 0  fy cy ty]
-    #     [ 0   0  1  0]
-    #
-    # fx = 205.46962738037109
-    # fy = 205.46962738037109
-    # cx = 320
-    # cy = 240
-    # tx = 0.0
-    # ty = 0.0
-    # s = 0.0
-    # # projection matrix (opencv camera_matix)
-    # P = [[fx, s, cx, tx], [0, fy, cy, ty], [0, 0, 1, 0]]
+        From gz-msgs/src/gz/msgs/proto/camera_info.proto
 
-    # projection matrix (opencv camera_matix)
-    P = camera_matrix
+        - fx is the X Focal length
+        - fy is the Y Focal length
+        - cx is the X principal point
+        - cy is the Y principal point
+        - tx is the X position of the second camera in this camera's frame.
+        - ty is the Y position of the second camera in this camera's frame.
+        - s is the axis skew.
 
-    # create the affines
-    t = camera_pose.position
-    r = quaternions.quat2mat(camera_pose.orientation)
-    z = [1.0, 1.0, 1.0]
-    X_w_c = affines.compose(t, r, z)
+        Intrinsic camera matrix for the raw (distorted) images can be
+        generated using the fx, fy, cx, and cy parameters contained in this
+        message. For example the intrinsic camera matrix K would be:
+              [fx  s cx]
+          K = [ 0 fy cy]
+              [ 0  0  1]
+        Projects 3D points in the camera coordinate frame to 2D pixel
+        coordinates using the focal lengths (fx, fy) and principal point
+        (cx, cy).
 
-    t = target_pose.position
-    r = quaternions.quat2mat(target_pose.orientation)
-    z = [1.0, 1.0, 1.0]
-    X_w_b = affines.compose(t, r, z)
+        The projection/camera matrix can be generated using the values in
+        this message. For example, the projection matrix P would be:
 
-    # compute the transform from the target frame to camera frame
-    X_c_w = np.linalg.inv(X_w_c)
-    X_c_b = np.matmul(X_c_w, X_w_b)
-    # print(X_c_b)
+              [fx   s cx tx]
+          P = [ 0  fy cy ty]
+              [ 0   0  1  0]
+        """
+        # projection matrix (opencv camera_matix)
+        P = camera_matrix
 
-    # transform the origin of the target to the camera sensor frame
-    v_b_b = np.transpose([[0, 0, 0, 1]])
-    v_b_c = np.matmul(X_c_b, v_b_b)
-    # print(v_b_b)
-    # print(v_b_c)
+        # create the affines
+        t = camera_pose.position
+        r = quaternions.quat2mat(camera_pose.orientation)
+        z = [1.0, 1.0, 1.0]
+        X_w_c = affines.compose(t, r, z)
 
-    # rotate from the camera sensor frame to the camera optical frame
-    #   camera sensor frame: FRU
-    #   camera optical frame: RDF
-    t = [0.0, 0.0, 0.0]
-    q = euler.euler2quat(np.radians(-90.0), 0.0, np.radians(-90.0))
-    r = quaternions.quat2mat(q)
-    z = [1.0, 1.0, 1.0]
-    X_c_o = affines.compose(t, r, z)
-    X_o_c = np.linalg.inv(X_c_o)
-    v_b_o = np.matmul(X_o_c, v_b_c)
+        t = target_pose.position
+        r = quaternions.quat2mat(target_pose.orientation)
+        z = [1.0, 1.0, 1.0]
+        X_w_b = affines.compose(t, r, z)
 
-    # project the target to screen space
-    uvw = np.matmul(P, v_b_o)
-    u = uvw[0, 0]
-    v = uvw[1, 0]
-    w = uvw[2, 0]
+        # compute the transform from the target frame to camera frame
+        X_c_w = np.linalg.inv(X_w_c)
+        X_c_b = np.matmul(X_c_w, X_w_b)
+        # print(X_c_b)
 
-    # print(f"XYZ: [{v_b_c[0, 0]:.2f}, {v_b_c[1, 0]:.2f}, {v_b_c[2, 0]:.2f}]")
-    # print(f"xyz: [{v_b_o[0, 0]:.2f}, {v_b_o[1, 0]:.2f}, {v_b_o[2, 0]:.2f}]")
-    # print(f"uv:  [{uvw[0, 0]/uvw[2, 0]:.2f}, {uvw[1, 0]/uvw[2, 0]:.2f}]")
+        # transform the origin of the target to the camera sensor frame
+        v_b_b = np.transpose([[0, 0, 0, 1]])
+        v_b_c = np.matmul(X_c_b, v_b_b)
+        # print(v_b_b)
+        # print(v_b_c)
 
-    # using opencv
-    # https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#projectpoints
-    object_points = v_b_o[0:3, 0]
-    # print(f"object_points:\n{object_points}")
+        # rotate from the camera sensor frame to the camera optical frame
+        #   camera sensor frame: FRU
+        #   camera optical frame: RDF
+        t = [0.0, 0.0, 0.0]
+        q = euler.euler2quat(np.radians(-90.0), 0.0, np.radians(-90.0))
+        r = quaternions.quat2mat(q)
+        z = [1.0, 1.0, 1.0]
+        X_c_o = affines.compose(t, r, z)
+        X_o_c = np.linalg.inv(X_c_o)
+        v_b_o = np.matmul(X_o_c, v_b_c)
 
-    # set rvec, tvec to zero as object is already in the camera optical frame
-    # rot3 = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
-    # rvec, _ = cv2.Rodrigues(rot3)
-    rvec = np.array([0.0, 0.0, 0.0])
-    tvec = np.array([0.0, 0.0, 0.0])
+        # project the target to screen space
+        uvw = np.matmul(P, v_b_o)
+        u = uvw[0, 0] / uvw[2, 0]
+        v = uvw[1, 0] / uvw[2, 0]
+        # print(f"XYZ: [{v_b_c[0, 0]:.2f}, {v_b_c[1, 0]:.2f}, {v_b_c[2, 0]:.2f}]")
+        # print(f"xyz: [{v_b_o[0, 0]:.2f}, {v_b_o[1, 0]:.2f}, {v_b_o[2, 0]:.2f}]")
+        # print(f"uv:  [{u:.2f}, {v:.2f}]")
 
-    # camera_matrix is the top-left 3x3 submatrix of P
-    # camera_matrix = np.array([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]])
-    camera_matrix = P[0:3, 0:3]
-    dist_coeffs = np.array([])
-    image_points, _ = cv2.projectPoints(
-        object_points, rvec, tvec, camera_matrix, dist_coeffs
-    )
-    # print(f"image_points:\n{image_points[0][0]}")
+        # # same calculation using opencv
+        # # https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#projectpoints
+        # object_points = v_b_o[0:3, 0]
+        #
+        # # set rvec, tvec to zero as object is already in the camera optical frame
+        # rvec = np.array([0.0, 0.0, 0.0])
+        # tvec = np.array([0.0, 0.0, 0.0])
+        #
+        # # camera_matrix is the top-left 3x3 submatrix of P
+        # camera_matrix = P[0:3, 0:3]
+        # dist_coeffs = np.array([])
+        # image_points, _ = cv2.projectPoints(
+        #     object_points, rvec, tvec, camera_matrix, dist_coeffs
+        # )
 
-    return [u / w, v / w]
+        return [u, v]
 
 
 def main():
     # create an object tracker
-    pose_monitor = PoseMonitor()
+    camera_target_tracker = CameraTargetTracker()
 
     # create the video object
     video = Video(port=5600)
 
-    # App must run on the main thread
+    # app must run on the main thread
     app = wx.App()
     wx_frame = wx.Frame(None)
 
     # create the camera panel
-    camera_panel = CameraPanel(wx_frame, video, pose_monitor, fps=30)
+    camera_panel = CameraPanel(wx_frame, video, camera_target_tracker, fps=30)
 
     wx_frame.Show()
     app.MainLoop()
@@ -720,8 +674,9 @@ def test_project_to_screen_space():
     P = [[fx, s, cx, tx], [0, fy, cy, ty], [0, 0, 1, 0]]
     camera_matrix = np.array(P)
 
-    image_point = project_point(camera_matrix, camera_pose, target_pose)
-
+    image_point = CameraTargetTracker.project_point(
+        camera_matrix, camera_pose, target_pose
+    )
     print(f"image_point: {image_point}")
 
 
