@@ -42,13 +42,13 @@ python ./src/ardupilot_sitl_models/Gazebo/scripts/omnirover_pose.py
 
 """
 
-import numpy as np
-import time
-import unittest
+import copy
 import cv2
-
-from threading import Lock
-from threading import Thread
+import gi
+import numpy as np
+import threading
+import time
+import wx
 
 from gz.msgs10.camera_info_pb2 import CameraInfo
 from gz.msgs10.pose_v_pb2 import Pose_V
@@ -58,6 +58,238 @@ from gz.transport13 import Node
 from transforms3d import affines
 from transforms3d import euler
 from transforms3d import quaternions
+
+
+gi.require_version("Gst", "1.0")
+from gi.repository import Gst
+
+
+class Video:
+    """BlueRov video capture class constructor
+
+    Attributes:
+        port (int): Video UDP port
+        video_codec (string): Source h264 parser
+        video_decode (string): Transform YUV (12bits) to BGR (24bits)
+        video_pipe (object): GStreamer top-level pipeline
+        video_sink (object): Gstreamer sink element
+        video_sink_conf (string): Sink configuration
+        video_source (string): Udp source ip and port
+        latest_frame (np.ndarray): Latest retrieved video frame
+    """
+
+    def __init__(self, port=5600):
+        """Summary
+
+        Args:
+            port (int, optional): UDP port
+        """
+
+        Gst.init(None)
+
+        self.port = port
+        self.latest_frame = self._new_frame = None
+
+        # [Software component diagram](https://www.ardusub.com/software/components.html)
+        # UDP video stream (:5600)
+        self.video_source = "udpsrc port={}".format(self.port)
+        # [Rasp raw image](http://picamera.readthedocs.io/en/release-0.7/recipes2.html#raw-image-capture-yuv-format)
+        # Cam -> CSI-2 -> H264 Raw (YUV 4-4-4 (12bits) I420)
+        self.video_codec = (
+            "! application/x-rtp, payload=96 ! rtph264depay ! h264parse ! avdec_h264"
+        )
+        # Python don't have nibble, convert YUV nibbles (4-4-4) to OpenCV standard BGR bytes (8-8-8)
+        self.video_decode = (
+            "! decodebin ! videoconvert ! video/x-raw,format=(string)BGR ! videoconvert"
+        )
+        # Create a sink to get data
+        self.video_sink_conf = (
+            "! appsink emit-signals=true sync=false max-buffers=2 drop=true"
+        )
+
+        self.video_pipe = None
+        self.video_sink = None
+
+        self.run()
+
+    def start_gst(self, config=None):
+        """ Start gstreamer pipeline and sink
+        Pipeline description list e.g:
+            [
+                'videotestsrc ! decodebin', \
+                '! videoconvert ! video/x-raw,format=(string)BGR ! videoconvert',
+                '! appsink'
+            ]
+
+        Args:
+            config (list, optional): Gstreamer pileline description list
+        """
+
+        if not config:
+            config = [
+                "videotestsrc ! decodebin",
+                "! videoconvert ! video/x-raw,format=(string)BGR ! videoconvert",
+                "! appsink",
+            ]
+
+        command = " ".join(config)
+        self.video_pipe = Gst.parse_launch(command)
+        self.video_pipe.set_state(Gst.State.PLAYING)
+        self.video_sink = self.video_pipe.get_by_name("appsink0")
+
+    @staticmethod
+    def gst_to_opencv(sample):
+        """Transform byte array into np array
+
+        Args:
+            sample (TYPE): Description
+
+        Returns:
+            TYPE: Description
+        """
+        buf = sample.get_buffer()
+        caps_structure = sample.get_caps().get_structure(0)
+        array = np.ndarray(
+            (caps_structure.get_value("height"), caps_structure.get_value("width"), 3),
+            buffer=buf.extract_dup(0, buf.get_size()),
+            dtype=np.uint8,
+        )
+        return array
+
+    def frame(self):
+        """Get Frame
+
+        Returns:
+            np.ndarray: latest retrieved image frame
+        """
+        if self.frame_available:
+            self.latest_frame = self._new_frame
+            # reset to indicate latest frame has been 'consumed'
+            self._new_frame = None
+        return self.latest_frame
+
+    def frame_available(self):
+        """Check if a new frame is available
+
+        Returns:
+            bool: true if a new frame is available
+        """
+        return self._new_frame is not None
+
+    def run(self):
+        """Get frame to update _new_frame"""
+
+        self.start_gst(
+            [
+                self.video_source,
+                self.video_codec,
+                self.video_decode,
+                self.video_sink_conf,
+            ]
+        )
+
+        self.video_sink.connect("new-sample", self.callback)
+
+    def callback(self, sink):
+        sample = sink.emit("pull-sample")
+        self._new_frame = self.gst_to_opencv(sample)
+
+        return Gst.FlowReturn.OK
+
+
+class CameraPanel(wx.Panel):
+    def __init__(self, parent, video, pose_monitor, fps=30):
+        wx.Panel.__init__(self, parent)
+
+        self._video = video
+        self.pose_monitor = pose_monitor
+
+        # Shared between threads
+        self._frame_lock = threading.Lock()
+        self._latest_frame = None
+
+        print("Initialising stream...")
+        waited = 0
+        while not self._video.frame_available():
+            waited += 1
+            print("\r  Frame not available (x{})".format(waited), end="")
+            cv2.waitKey(30)
+        print("\nSuccess!\nStarting streaming")
+
+        # Load a pretrained YOLO model
+        # self._model = YOLO("yolov8n.pt")
+
+        # Display model information
+        # self._model.info()
+
+        if self._video.frame_available():
+            # Only retrieve and display a frame if it's new
+            frame = copy.deepcopy(self._video.frame())
+
+            # Frame size
+            height, width, _ = frame.shape
+
+            parent.SetSize((width, height))
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            self.bmp = wx.Bitmap.FromBuffer(width, height, frame)
+
+            self.timer = wx.Timer(self)
+            self.timer.Start(int(1000 / fps))
+
+            self.Bind(wx.EVT_PAINT, self.OnPaint)
+            self.Bind(wx.EVT_TIMER, self.NextFrame)
+
+    def OnPaint(self, evt):
+        dc = wx.BufferedPaintDC(self)
+        dc.DrawBitmap(self.bmp, 0, 0)
+
+    def NextFrame(self, event):
+        if self._video.frame_available():
+            frame = copy.deepcopy(self._video.frame())
+
+            # YOLO object detection
+            # results = self._model.track(frame, stream=True)
+            #
+            # for r in results:
+            #     boxes = r.boxes
+            #     for box in boxes:
+            #         # bounding box
+            #         cls = int(box.cls)
+            #         name = self._model.names[cls]
+            #         # if not (
+            #         #     name == "bus"
+            #         #     or name == "boat"
+            #         #     or name == "skateboard"
+            #         #     or name == "truck"
+            #         # ):
+            #         #     continue
+            #
+            #         print("Classification is: ", name, ", [", box.conf, "]")
+            #
+            #         # Draw bounding rectangle
+            #         x1, y1, x2, y2 = box.xyxy[0]
+            #
+            #         # Convert to int values
+            #         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+            #
+            #         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)
+
+            # create 50x50 px square about image point
+            image_point = self.pose_monitor.image_point()
+            # print(f"image_point: {image_point}")
+            u = int(image_point[0])
+            v = int(image_point[1])
+            x1 = u - 25
+            y1 = v - 25
+            x2 = u + 25
+            y2 = v + 25
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)
+
+            # Convert frame to bitmap for wxFrame
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self.bmp.CopyFromBuffer(frame)
+            self.Refresh()
 
 
 class Pose:
@@ -134,6 +366,7 @@ class CameraInformation:
         return np.array(P)
 
 
+# TODO: come up with a better name
 class PoseMonitor:
     """
     Calculate camera and target pose from pose_v messages.
@@ -147,10 +380,10 @@ class PoseMonitor:
         self._node = Node()
 
         # mutex for access to messages in subsciber callbacks
-        self._mutex = Lock()
+        self._mutex = threading.Lock()
 
         # subscribe to pose_v messages
-        self._target_pose_v_do_print_msg = True
+        self._target_pose_v_do_print_msg = False
         self._target_pose_v_msg = None
         self._target_pose_v_topic = f"/model/{self.TARGET_NAME}/pose"
         self._target_pose_v_sub = self._node.subscribe(
@@ -158,7 +391,7 @@ class PoseMonitor:
         )
         self._target_pose = None
 
-        self._camera_pose_v_do_print_msg = True
+        self._camera_pose_v_do_print_msg = False
         self._camera_pose_v_msg = None
         self._camera_pose_v_topic = f"/model/{self.CAMERA_NAME}/pose"
         self._camera_pose_v_sub = self._node.subscribe(
@@ -167,7 +400,7 @@ class PoseMonitor:
         self._camera_pose = None
 
         # subscribe to camera_info messages
-        self._camera_info_do_print_msg = True
+        self._camera_info_do_print_msg = False
         self._camera_info_msg = None
         # self._camera_info_topic = f"/world/{self.WORLD_NAME}/model/{self.CAMERA_NAME}/model/gimbal/link/pitch_link/sensor/camera/camera_info"
         self._camera_info_topic = "/world/playpen/model/mount/model/gimbal/link/pitch_link/sensor/camera/camera_info"
@@ -176,9 +409,12 @@ class PoseMonitor:
         )
         self._camera_info = None
 
-        # create update thread
-        self._update_thread = Thread(target=self.update)
-        self._update_thread.run()
+        # image point
+        self._image_point = [0, 0]
+
+        # create and start the update thread
+        self._update_thread = threading.Thread(target=self.update)
+        self._update_thread.start()
 
     def target_pose_v_cb(self, msg: Pose_V):
         with self._mutex:
@@ -210,7 +446,7 @@ class PoseMonitor:
             print(self._camera_info_msg)
 
     def update(self):
-        update_rate = 1.0
+        update_rate = 10.0
         update_period = 1.0 / update_rate
         while True:
             if self._camera_pose_v_msg is not None:
@@ -231,16 +467,19 @@ class PoseMonitor:
                 # print(self._target_pose)
                 # print()
 
-            if (self._target_pose is not None) and (self._camera_pose is not None):
+            if (
+                (self._target_pose is not None)
+                and (self._camera_pose is not None)
+                and (self._camera_info_msg is not None)
+            ):
                 self._camera_info = CameraInformation(self._camera_info_msg)
-                print(self._camera_info)
+                # print(self._camera_info)
 
                 # projection matrix (=opencv camera_matrix)
                 camera_matrix = self._camera_info.camera_matrix
-                image_point = project_point(
+                self._image_point = project_point(
                     camera_matrix, self._camera_pose, self._target_pose
                 )
-                print(f"image_point: {image_point}")
 
             time.sleep(update_period)
 
@@ -299,6 +538,9 @@ class PoseMonitor:
         # print(f"r: {r}")
         # print(f"a: {a}")
         return a
+
+    def image_point(self):
+        return self._image_point
 
 
 def project_point(camera_matrix, camera_pose, target_pose):
@@ -437,9 +679,9 @@ def project_point(camera_matrix, camera_pose, target_pose):
     v = uvw[1, 0]
     w = uvw[2, 0]
 
-    print(f"XYZ: [{v_b_c[0, 0]:.2f}, {v_b_c[1, 0]:.2f}, {v_b_c[2, 0]:.2f}]")
-    print(f"xyz: [{v_b_o[0, 0]:.2f}, {v_b_o[1, 0]:.2f}, {v_b_o[2, 0]:.2f}]")
-    print(f"uv:  [{uvw[0, 0]/uvw[2, 0]:.2f}, {uvw[1, 0]/uvw[2, 0]:.2f}]")
+    # print(f"XYZ: [{v_b_c[0, 0]:.2f}, {v_b_c[1, 0]:.2f}, {v_b_c[2, 0]:.2f}]")
+    # print(f"xyz: [{v_b_o[0, 0]:.2f}, {v_b_o[1, 0]:.2f}, {v_b_o[2, 0]:.2f}]")
+    # print(f"uv:  [{uvw[0, 0]/uvw[2, 0]:.2f}, {uvw[1, 0]/uvw[2, 0]:.2f}]")
 
     # using opencv
     # https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html#projectpoints
@@ -465,16 +707,21 @@ def project_point(camera_matrix, camera_pose, target_pose):
 
 
 def main():
+    # create an object tracker
     pose_monitor = PoseMonitor()
-    loop_rate_hz = 50.0
-    loop_duration_s = 1.0 / loop_rate_hz
 
-    try:
-        while True:
-            time.sleep(loop_duration_s)
+    # create the video object
+    video = Video(port=5600)
 
-    except KeyboardInterrupt:
-        print("Exiting")
+    # App must run on the main thread
+    app = wx.App()
+    wx_frame = wx.Frame(None)
+
+    # create the camera panel
+    camera_panel = CameraPanel(wx_frame, video, pose_monitor, fps=30)
+
+    wx_frame.Show()
+    app.MainLoop()
 
 
 def test_project_to_screen_space():
