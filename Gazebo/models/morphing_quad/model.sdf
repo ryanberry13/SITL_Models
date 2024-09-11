@@ -92,6 +92,15 @@
           </cylinder>
         </geometry>
       </collision>
+      <collision name="nose_cone_collision">
+        <pose degrees="true">0.075 0 0 0 90 0</pose>
+        <geometry>
+          <cone>
+            <radius>0.05</radius>
+            <length>0.10</length>
+          </cone>
+        </geometry>
+      </collision>
       <visual name="visual">
         <pose degrees="true">0 0 0 0 90 0</pose>
         <geometry>
@@ -99,6 +108,20 @@
             <radius>0.05</radius>
             <length>0.05</length>
           </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.5 0.5 0.5 1</ambient>
+          <diffuse>0.5 0.5 0.5 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+      <visual name="nose_cone_visual">
+        <pose degrees="true">0.075 0 0 0 90 0</pose>
+        <geometry>
+          <cone>
+            <radius>0.05</radius>
+            <length>0.10</length>
+          </cone>
         </geometry>
         <material>
           <ambient>0.5 0.5 0.5 1</ambient>
