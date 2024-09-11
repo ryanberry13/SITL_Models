@@ -68,5 +68,108 @@
         </material>
       </visual>
     </link>
+
+    <link name="fuselage_front_link">
+      <pose>0.095 0 0 0 0 0</pose>
+      <inertial>
+        <pose degrees="true">0 0 0 0 90 0</pose>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>5.54167E-05</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>5.54167E-05</iyy>
+          <iyz>0</iyz>
+          <izz>0.00009</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <pose degrees="true">0 0 0 0 90 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.05</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <pose degrees="true">0 0 0 0 90 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.05</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.5 0.5 0.5 1</ambient>
+          <diffuse>0.5 0.5 0.5 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+    </link>
+    <joint name="fuselage_front_joint" type="revolute">
+      <pose>-0.025 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>fuselage_front_link</child>
+      <axis>
+        <limit>
+          <lower>0</lower>
+          <upper>0</upper>
+        </limit>
+        <xyz>0 0 1</xyz>
+      </axis>
+    </joint>
+
+    <link name="fuselage_back_link">
+      <pose>-0.095 0 0 0 0 0</pose>
+      <inertial>
+        <pose degrees="true">0 0 0 0 90 0</pose>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>5.54167E-05</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>5.54167E-05</iyy>
+          <iyz>0</iyz>
+          <izz>0.00009</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <pose degrees="true">0 0 0 0 90 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.05</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <pose degrees="true">0 0 0 0 90 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.05</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.5 0.5 0.5 1</ambient>
+          <diffuse>0.5 0.5 0.5 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+    </link>
+    <joint name="fuselage_back_joint" type="revolute">
+      <pose>0.025 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>fuselage_back_link</child>
+      <axis>
+        <limit>
+          <lower>0</lower>
+          <upper>0</upper>
+        </limit>
+        <xyz>0 0 1</xyz>
+      </axis>
+    </joint>
+
   </model>
 </sdf>
