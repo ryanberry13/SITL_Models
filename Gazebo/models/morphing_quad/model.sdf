@@ -896,5 +896,66 @@
       <cmd_min>-1.0e3</cmd_min>
     </plugin>
 
+
+    <plugin name="ArduPilotPlugin" filename="ArduPilotPlugin">
+      <!-- Port settings -->
+      <fdm_addr>127.0.0.1</fdm_addr>
+      <fdm_port_in>9002</fdm_port_in>
+      <connectionTimeoutMaxCount>5</connectionTimeoutMaxCount>
+      <lock_step>1</lock_step>
+      <have_32_channels>0</have_32_channels>
+
+      <!-- Frame conventions -->
+      <modelXYZToAirplaneXForwardZDown degrees="true">0 0 0 180 0 0</modelXYZToAirplaneXForwardZDown>
+      <gazeboXYZToNED degrees="true">0 0 0 180 0 90</gazeboXYZToNED>
+
+      <!-- Sensors -->
+      <imuName>base_link::imu_sensor</imuName>
+
+      <!-- motor1: ccw -->
+      <control channel="0">
+        <jointName>motor_front_right_joint</jointName>
+        <multiplier>800</multiplier>
+        <offset>0</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+        <type>COMMAND</type>
+        <cmd_topic>/model/morphing_quad/joint/motor_front_right_joint/cmd_vel</cmd_topic>
+      </control>
+
+      <!-- motor2: ccw -->
+      <control channel="1">
+        <jointName>motor_back_left_joint</jointName>
+        <multiplier>800</multiplier>
+        <offset>0</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+        <type>COMMAND</type>
+        <cmd_topic>/model/morphing_quad/joint/motor_back_left_joint/cmd_vel</cmd_topic>
+        </control>
+
+      <!-- motor3: cw -->
+      <control channel="2">
+          <jointName>motor_front_left_joint</jointName>
+          <multiplier>-800</multiplier>
+          <offset>0</offset>
+          <servo_min>1000</servo_min>
+          <servo_max>2000</servo_max>
+          <type>COMMAND</type>
+          <cmd_topic>/model/morphing_quad/joint/motor_front_left_joint/cmd_vel</cmd_topic>
+        </control>
+  
+      <!-- motor4: cw -->
+      <control channel="3">
+          <jointName>motor_back_right_joint</jointName>
+          <multiplier>-800</multiplier>
+          <offset>0</offset>
+          <servo_min>1000</servo_min>
+          <servo_max>2000</servo_max>
+          <type>COMMAND</type>
+          <cmd_topic>/model/morphing_quad/joint/motor_back_right_joint/cmd_vel</cmd_topic>
+        </control>
+
+    </plugin>
   </model>
 </sdf>
