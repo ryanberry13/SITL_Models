@@ -850,5 +850,51 @@
       <cmd_max>1.0e4</cmd_max>
       <cmd_min>-1.0e4</cmd_min>
     </plugin>
+
+    <plugin name="gz::sim::systems::JointController"
+      filename="gz-sim-joint-controller-system">
+      <joint_name>motor_front_left_joint</joint_name>
+      <use_force_commands>1</use_force_commands>
+      <topic>/model/morphing_quad/joint/motor_front_left_joint/cmd_vel</topic>
+      <initial_velocity>0.0</initial_velocity>
+      <p_gain>0.001</p_gain>
+      <d_gain>1.0e-8</d_gain>
+      <cmd_max>1.0e3</cmd_max>
+      <cmd_min>-1.0e3</cmd_min>
+    </plugin>
+    <plugin name="gz::sim::systems::JointController"
+      filename="gz-sim-joint-controller-system">
+      <joint_name>motor_front_right_joint</joint_name>
+      <use_force_commands>1</use_force_commands>
+      <topic>/model/morphing_quad/joint/motor_front_right_joint/cmd_vel</topic>
+      <initial_velocity>0.0</initial_velocity>
+      <p_gain>0.001</p_gain>
+      <d_gain>1.0e-8</d_gain>
+      <cmd_max>1.0e3</cmd_max>
+      <cmd_min>-1.0e3</cmd_min>
+    </plugin>
+    <plugin name="gz::sim::systems::JointController"
+      filename="gz-sim-joint-controller-system">
+      <joint_name>motor_back_left_joint</joint_name>
+      <use_force_commands>1</use_force_commands>
+      <topic>/model/morphing_quad/joint/motor_back_left_joint/cmd_vel</topic>
+      <initial_velocity>0.0</initial_velocity>
+      <p_gain>0.001</p_gain>
+      <d_gain>1.0e-8</d_gain>
+      <cmd_max>1.0e3</cmd_max>
+      <cmd_min>-1.0e3</cmd_min>
+    </plugin>
+    <plugin name="gz::sim::systems::JointController"
+      filename="gz-sim-joint-controller-system">
+      <joint_name>motor_back_right_joint</joint_name>
+      <use_force_commands>1</use_force_commands>
+      <topic>/model/morphing_quad/joint/motor_back_right_joint/cmd_vel</topic>
+      <initial_velocity>0.0</initial_velocity>
+      <p_gain>0.001</p_gain>
+      <d_gain>1.0e-8</d_gain>
+      <cmd_max>1.0e3</cmd_max>
+      <cmd_min>-1.0e3</cmd_min>
+    </plugin>
+
   </model>
 </sdf>
