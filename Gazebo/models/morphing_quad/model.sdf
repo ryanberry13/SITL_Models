@@ -240,6 +240,143 @@
       </axis>
     </joint>
 
+    <link name="wing_front_right_link">
+      <pose>0.0675 -0.125 0 0 0 0</pose>
+      <inertial>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>9.41667E-05</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>5.08333E-05</iyy>
+          <iyz>0</iyz>
+          <izz>0.000144167</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.110 0.150 0.010</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.110 0.150 0.010</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.5 0.5 0.5 1</ambient>
+          <diffuse>0.5 0.5 0.5 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+    </link>
+    <joint name="wing_front_right_joint" type="revolute">
+      <pose>0.0275 0.075 0 0 0 0</pose>
+      <parent>fuselage_front_link</parent>
+      <child>wing_front_right_link</child>
+      <axis>
+        <limit>
+          <lower>-1.57079632</lower>
+          <upper>1.57079632</upper>
+        </limit>
+        <xyz>0 1 0</xyz>
+      </axis>
+    </joint>
+
+    <link name="wing_back_left_link">
+      <pose>-0.1225 0.125 0 0 0 0</pose>
+      <inertial>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>9.41667E-05</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>5.08333E-05</iyy>
+          <iyz>0</iyz>
+          <izz>0.000144167</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.110 0.150 0.010</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.110 0.150 0.010</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.5 0.5 0.5 1</ambient>
+          <diffuse>0.5 0.5 0.5 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+    </link>
+    <joint name="wing_back_left_joint" type="revolute">
+      <pose>0.0275 -0.075 0 0 0 0</pose>
+      <parent>fuselage_back_link</parent>
+      <child>wing_back_left_link</child>
+      <axis>
+        <limit>
+          <lower>-1.57079632</lower>
+          <upper>1.57079632</upper>
+        </limit>
+        <xyz>0 1 0</xyz>
+      </axis>
+    </joint>
+
+    <link name="wing_back_right_link">
+      <pose>-0.1225 -0.125 0 0 0 0</pose>
+      <inertial>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>9.41667E-05</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>5.08333E-05</iyy>
+          <iyz>0</iyz>
+          <izz>0.000144167</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.110 0.150 0.010</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.110 0.150 0.010</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.5 0.5 0.5 1</ambient>
+          <diffuse>0.5 0.5 0.5 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+    </link>
+    <joint name="wing_back_right_joint" type="revolute">
+      <pose>0.0275 0.075 0 0 0 0</pose>
+      <parent>fuselage_back_link</parent>
+      <child>wing_back_right_link</child>
+      <axis>
+        <limit>
+          <lower>-1.57079632</lower>
+          <upper>1.57079632</upper>
+        </limit>
+        <xyz>0 1 0</xyz>
+      </axis>
+    </joint>
 
 
   </model>
