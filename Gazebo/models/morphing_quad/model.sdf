@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <!--
   Dimensions
+  ==========
 
   Prop  : 5 inch
   Motor : model:  tbd
@@ -18,9 +19,37 @@
 
 
   Wing joint position controllers
+  ===============================
 
   gz topic -t /model/morphing_quad/joint/wing_front_left_joint/cmd_pos -m gz.msgs.Double -p "data: -1.57"
 
+  Motor joint velocity controllers
+  ================================
+
+  gz topic -t /model/morphing_quad/joint/motor_front_left_joint/cmd_vel -m gz.msgs.Double -p "data: -1.57"
+
+  ArduPilot parameters
+  ====================
+
+  The vehicle is run as an X-frame quadcopter.
+  
+  For testing the wing tilt servo outputs use the outputs of RC6 and RC7. 
+
+  FRAME_TYPE       1.000000 0.000000 # X (DEFAULT: Plus)
+  SERVO1_MIN       1000.000000 1100.000000
+  SERVO1_MAX       2000.000000 1900.000000
+  SERVO2_MIN       1000.000000 1100.000000
+  SERVO2_MAX       2000.000000 1900.000000
+  SERVO3_MIN       1000.000000 1100.000000
+  SERVO3_MAX       2000.000000 1900.000000
+  SERVO4_MIN       1000.000000 1100.000000
+  SERVO4_MAX       2000.000000 1900.000000
+  SERVO6_MIN       1000.000000 1100.000000
+  SERVO6_MAX       2000.000000 1900.000000
+  SERVO6_FUNCTION  56.000000 0.000000 # RCIN6 (DEFAULT: Disabled)
+  SERVO7_MIN       1000.000000 1100.000000
+  SERVO7_MAX       2000.000000 1900.000000
+  SERVO7_FUNCTION  57.000000 0.000000 # RCIN7 (DEFAULT: Disabled)
 
 -->
 <sdf version="1.9"> 
@@ -956,6 +985,45 @@
           <cmd_topic>/model/morphing_quad/joint/motor_back_right_joint/cmd_vel</cmd_topic>
         </control>
 
+      <!-- front wing tilt -->
+      <control channel="5">
+        <jointName>wing_front_left_joint</jointName>
+        <multiplier>-1.57079632</multiplier>
+        <offset>0</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+        <type>COMMAND</type>
+        <cmd_topic>/model/morphing_quad/joint/wing_front_left_joint/cmd_pos</cmd_topic>
+      </control>
+      <control channel="5">
+        <jointName>wing_front_right_joint</jointName>
+        <multiplier>-1.57079632</multiplier>
+        <offset>0</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+        <type>COMMAND</type>
+        <cmd_topic>/model/morphing_quad/joint/wing_front_right_joint/cmd_pos</cmd_topic>
+      </control>
+
+      <!-- rear wing tilt -->
+      <control channel="6">
+        <jointName>wing_back_left_joint</jointName>
+        <multiplier>-1.57079632</multiplier>
+        <offset>0</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+        <type>COMMAND</type>
+        <cmd_topic>/model/morphing_quad/joint/wing_back_left_joint/cmd_pos</cmd_topic>
+      </control>
+      <control channel="6">
+        <jointName>wing_back_right_joint</jointName>
+        <multiplier>-1.57079632</multiplier>
+        <offset>0</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+        <type>COMMAND</type>
+        <cmd_topic>/model/morphing_quad/joint/wing_back_right_joint/cmd_pos</cmd_topic>
+      </control>
     </plugin>
   </model>
 </sdf>
