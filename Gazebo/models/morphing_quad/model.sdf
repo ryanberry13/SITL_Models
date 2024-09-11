@@ -16,6 +16,12 @@
   Wing:   span:   0.150m
           chord:  0.110m
 
+
+  Wing joint position controllers
+
+  gz topic -t /model/morphing_quad/joint/wing_front_left_joint/cmd_pos -m gz.msgs.Double -p "data: -1.57"
+
+
 -->
 <sdf version="1.9"> 
   <model name="morphing_quad">
@@ -787,5 +793,62 @@
       </axis>
     </joint>
 
+    <!-- plugins -->
+    <plugin name="gz::sim::systems::JointStatePublisher"
+        filename="gz-sim-joint-state-publisher-system">
+    </plugin>
+
+    <plugin name="gz::sim::systems::JointPositionController"
+        filename="gz-sim-joint-position-controller-system">
+      <joint_name>wing_front_left_joint</joint_name>
+      <topic>/model/morphing_quad/joint/wing_front_left_joint/cmd_pos</topic>
+      <initial_position>-1.57079632</initial_position>
+      <p_gain>0.4</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>1.0e-2</d_gain>
+      <i_max>1</i_max>
+      <i_min>-1</i_min>
+      <cmd_max>1.0e4</cmd_max>
+      <cmd_min>-1.0e4</cmd_min>
+    </plugin>
+    <plugin name="gz::sim::systems::JointPositionController"
+        filename="gz-sim-joint-position-controller-system">
+      <joint_name>wing_front_right_joint</joint_name>
+      <topic>/model/morphing_quad/joint/wing_front_right_joint/cmd_pos</topic>
+      <initial_position>-1.57079632</initial_position>
+      <p_gain>0.4</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>1.0e-2</d_gain>
+      <i_max>1</i_max>
+      <i_min>-1</i_min>
+      <cmd_max>1.0e4</cmd_max>
+      <cmd_min>-1.0e4</cmd_min>
+    </plugin>
+    <plugin name="gz::sim::systems::JointPositionController"
+        filename="gz-sim-joint-position-controller-system">
+      <joint_name>wing_back_left_joint</joint_name>
+      <topic>/model/morphing_quad/joint/wing_back_left_joint/cmd_pos</topic>
+      <initial_position>-1.57079632</initial_position>
+      <p_gain>0.4</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>1.0e-2</d_gain>
+      <i_max>1</i_max>
+      <i_min>-1</i_min>
+      <cmd_max>1.0e4</cmd_max>
+      <cmd_min>-1.0e4</cmd_min>
+    </plugin>
+    <plugin name="gz::sim::systems::JointPositionController"
+        filename="gz-sim-joint-position-controller-system">
+      <joint_name>wing_back_right_joint</joint_name>
+      <topic>/model/morphing_quad/joint/wing_back_right_joint/cmd_pos</topic>
+      <initial_position>-1.57079632</initial_position>
+      <p_gain>0.4</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>1.0e-2</d_gain>
+      <i_max>1</i_max>
+      <i_min>-1</i_min>
+      <cmd_max>1.0e4</cmd_max>
+      <cmd_min>-1.0e4</cmd_min>
+    </plugin>
   </model>
 </sdf>
