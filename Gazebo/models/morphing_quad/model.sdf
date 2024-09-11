@@ -434,6 +434,353 @@
       </axis>
     </joint>
 
+    <link name="motor_front_left_link">
+      <pose degrees="true">0.1225 0.125 0 0 90 0</pose>
+      <inertial>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>4.92917E-06</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>4.92917E-06</iyy>
+          <iyz>0</iyz>
+          <izz>0.000004225</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <cylinder>
+            <radius>0.013</radius>
+            <length>0.026</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <cylinder>
+            <radius>0.013</radius>
+            <length>0.026</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>1 0 0 1</ambient>
+          <diffuse>1 0 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+      <visual name="prop_blade_1_visual">
+        <pose degrees="true">0.030625 0 0.015 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.06125 0.01 0.002</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+      <visual name="prop_blade_2_visual">
+        <pose degrees="true">-0.0153125 0.026522027990898433 0.015 0 0 120</pose>
+        <geometry>
+          <box>
+            <size>0.06125 0.01 0.002</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+      <visual name="prop_blade_3_visual">
+        <pose degrees="true">-0.0153125 -0.026522027990898433 0.015 0 0 240</pose>
+        <geometry>
+          <box>
+            <size>0.06125 0.01 0.002</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+    </link>
+    <joint name="motor_front_left_joint" type="revolute">
+      <pose>0 0 0 0 0 0</pose>
+      <parent>wing_front_left_link</parent>
+      <child>motor_front_left_link</child>
+      <axis>
+        <limit>
+          <lower>-1.0e16</lower>
+          <upper>1.0e16</upper>
+        </limit>
+        <xyz>0 0 1</xyz>
+      </axis>
+    </joint>
+
+    <link name="motor_front_right_link">
+      <pose degrees="true">0.1225 -0.125 0 0 90 0</pose>
+      <inertial>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>4.92917E-06</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>4.92917E-06</iyy>
+          <iyz>0</iyz>
+          <izz>0.000004225</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <cylinder>
+            <radius>0.013</radius>
+            <length>0.026</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <cylinder>
+            <radius>0.013</radius>
+            <length>0.026</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>1 0 0 1</ambient>
+          <diffuse>1 0 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+      <visual name="prop_blade_1_visual">
+        <pose degrees="true">0.030625 0 0.015 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.06125 0.01 0.002</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+      <visual name="prop_blade_2_visual">
+        <pose degrees="true">-0.0153125 0.026522027990898433 0.015 0 0 120</pose>
+        <geometry>
+          <box>
+            <size>0.06125 0.01 0.002</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+      <visual name="prop_blade_3_visual">
+        <pose degrees="true">-0.0153125 -0.026522027990898433 0.015 0 0 240</pose>
+        <geometry>
+          <box>
+            <size>0.06125 0.01 0.002</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+    </link>
+    <joint name="motor_front_right_joint" type="revolute">
+      <pose>0 0 0 0 0 0</pose>
+      <parent>wing_front_right_link</parent>
+      <child>motor_front_right_link</child>
+      <axis>
+        <limit>
+          <lower>-1.0e16</lower>
+          <upper>1.0e16</upper>
+        </limit>
+        <xyz>0 0 1</xyz>
+      </axis>
+    </joint>
+
+    <link name="motor_back_left_link">
+      <pose degrees="true">-0.0675 0.125 0 0 90 0</pose>
+      <inertial>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>4.92917E-06</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>4.92917E-06</iyy>
+          <iyz>0</iyz>
+          <izz>0.000004225</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <cylinder>
+            <radius>0.013</radius>
+            <length>0.026</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <cylinder>
+            <radius>0.013</radius>
+            <length>0.026</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>1 0 0 1</ambient>
+          <diffuse>1 0 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+      <visual name="prop_blade_1_visual">
+        <pose degrees="true">0.030625 0 0.015 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.06125 0.01 0.002</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+      <visual name="prop_blade_2_visual">
+        <pose degrees="true">-0.0153125 0.026522027990898433 0.015 0 0 120</pose>
+        <geometry>
+          <box>
+            <size>0.06125 0.01 0.002</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+      <visual name="prop_blade_3_visual">
+        <pose degrees="true">-0.0153125 -0.026522027990898433 0.015 0 0 240</pose>
+        <geometry>
+          <box>
+            <size>0.06125 0.01 0.002</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+    </link>
+    <joint name="motor_back_left_joint" type="revolute">
+      <pose>0 0 0 0 0 0</pose>
+      <parent>wing_back_left_link</parent>
+      <child>motor_back_left_link</child>
+      <axis>
+        <limit>
+          <lower>-1.0e16</lower>
+          <upper>1.0e16</upper>
+        </limit>
+        <xyz>0 0 1</xyz>
+      </axis>
+    </joint>
+
+    <link name="motor_back_right_link">
+      <pose degrees="true">-0.0675 -0.125 0 0 90 0</pose>
+      <inertial>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>4.92917E-06</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>4.92917E-06</iyy>
+          <iyz>0</iyz>
+          <izz>0.000004225</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <cylinder>
+            <radius>0.013</radius>
+            <length>0.026</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <cylinder>
+            <radius>0.013</radius>
+            <length>0.026</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>1 0 0 1</ambient>
+          <diffuse>1 0 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+      <visual name="prop_blade_1_visual">
+        <pose degrees="true">0.030625 0 0.015 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.06125 0.01 0.002</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+      <visual name="prop_blade_2_visual">
+        <pose degrees="true">-0.0153125 0.026522027990898433 0.015 0 0 120</pose>
+        <geometry>
+          <box>
+            <size>0.06125 0.01 0.002</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+      <visual name="prop_blade_3_visual">
+        <pose degrees="true">-0.0153125 -0.026522027990898433 0.015 0 0 240</pose>
+        <geometry>
+          <box>
+            <size>0.06125 0.01 0.002</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+    </link>
+    <joint name="motor_back_right_joint" type="revolute">
+      <pose>0 0 0 0 0 0</pose>
+      <parent>wing_back_right_link</parent>
+      <child>motor_back_right_link</child>
+      <axis>
+        <limit>
+          <lower>-1.0e16</lower>
+          <upper>1.0e16</upper>
+        </limit>
+        <xyz>0 0 1</xyz>
+      </axis>
+    </joint>
 
   </model>
 </sdf>
