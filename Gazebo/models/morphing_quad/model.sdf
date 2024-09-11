@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<!--
+  Dimensions
+
+  Prop  : 5 inch
+  Motor : model:  tbd
+          mass:   tbd
+          size:   tbd
+          thrust: tbd
+  ESC   : tbd
+  Servo : model:  tbd
+          mass:   tbd
+          torque: tbd
+          size:   tbd
+
+  Wing:   span:   0.150m
+          chord:  0.110m
+
+-->
+<sdf version="1.9"> 
+  <model name="morphing_quad">
+    <pose>0 0 0 0 0 0</pose>
+    <link name="base_link">
+      <inertial>
+        <pose degrees="true">0 0 0 0 90 0</pose>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>0.000126667</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.000126667</iyy>
+          <iyz>0</iyz>
+          <izz>0.00009</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <pose degrees="true">0 0 0 0 90 0</pose>
+        <geometry>
+          <!-- <cylinder>
+            <radius>0.05</radius>
+            <length>0.140</length>
+          </cylinder> -->
+          <box>
+            <size>0.1 0.1 0.140</size>
+          </box>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>1.0</mu2>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <pose degrees="true">0 0 0 0 90 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.05</radius>
+            <length>0.140</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.5 0.5 0.5 1</ambient>
+          <diffuse>0.5 0.5 0.5 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>
