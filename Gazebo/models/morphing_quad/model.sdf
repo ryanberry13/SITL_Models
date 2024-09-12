@@ -175,11 +175,14 @@
       <parent>base_link</parent>
       <child>fuselage_front_link</child>
       <axis>
+        <xyz>0 0 1</xyz>
         <limit>
           <lower>0</lower>
           <upper>0</upper>
         </limit>
-        <xyz>0 0 1</xyz>
+        <dynamics>
+          <damping>0.1</damping>
+        </dynamics>
       </axis>
     </joint>
 
@@ -226,11 +229,14 @@
       <parent>base_link</parent>
       <child>fuselage_back_link</child>
       <axis>
+        <xyz>0 0 1</xyz>
         <limit>
           <lower>0</lower>
           <upper>0</upper>
         </limit>
-        <xyz>0 0 1</xyz>
+        <dynamics>
+          <damping>0.1</damping>
+        </dynamics>
       </axis>
     </joint>
 
@@ -286,11 +292,14 @@
       <parent>fuselage_front_link</parent>
       <child>wing_front_left_link</child>
       <axis>
+        <xyz>0 1 0</xyz>
         <limit>
           <lower>-1.57079632</lower>
           <upper>1.57079632</upper>
         </limit>
-        <xyz>0 1 0</xyz>
+        <dynamics>
+          <damping>0.01</damping>
+        </dynamics>
       </axis>
     </joint>
 
@@ -346,11 +355,14 @@
       <parent>fuselage_front_link</parent>
       <child>wing_front_right_link</child>
       <axis>
+        <xyz>0 1 0</xyz>
         <limit>
           <lower>-1.57079632</lower>
           <upper>1.57079632</upper>
         </limit>
-        <xyz>0 1 0</xyz>
+        <dynamics>
+          <damping>0.01</damping>
+        </dynamics>
       </axis>
     </joint>
 
@@ -406,11 +418,14 @@
       <parent>fuselage_back_link</parent>
       <child>wing_back_left_link</child>
       <axis>
+        <xyz>0 1 0</xyz>
         <limit>
           <lower>-1.57079632</lower>
           <upper>1.57079632</upper>
         </limit>
-        <xyz>0 1 0</xyz>
+        <dynamics>
+          <damping>0.01</damping>
+        </dynamics>
       </axis>
     </joint>
 
@@ -466,11 +481,14 @@
       <parent>fuselage_back_link</parent>
       <child>wing_back_right_link</child>
       <axis>
+        <xyz>0 1 0</xyz>
         <limit>
           <lower>-1.57079632</lower>
           <upper>1.57079632</upper>
         </limit>
-        <xyz>0 1 0</xyz>
+        <dynamics>
+          <damping>0.01</damping>
+        </dynamics>
       </axis>
     </joint>
 
@@ -553,11 +571,14 @@
       <parent>wing_front_left_link</parent>
       <child>motor_front_left_link</child>
       <axis>
+        <xyz>0 0 1</xyz>
         <limit>
           <lower>-1.0e16</lower>
           <upper>1.0e16</upper>
         </limit>
-        <xyz>0 0 1</xyz>
+        <dynamics>
+          <damping>0.004</damping>
+        </dynamics>
       </axis>
     </joint>
 
@@ -640,11 +661,14 @@
       <parent>wing_front_right_link</parent>
       <child>motor_front_right_link</child>
       <axis>
+        <xyz>0 0 1</xyz>
         <limit>
           <lower>-1.0e16</lower>
           <upper>1.0e16</upper>
         </limit>
-        <xyz>0 0 1</xyz>
+        <dynamics>
+          <damping>0.004</damping>
+        </dynamics>
       </axis>
     </joint>
 
@@ -727,11 +751,14 @@
       <parent>wing_back_left_link</parent>
       <child>motor_back_left_link</child>
       <axis>
+        <xyz>0 0 1</xyz>
         <limit>
           <lower>-1.0e16</lower>
           <upper>1.0e16</upper>
         </limit>
-        <xyz>0 0 1</xyz>
+        <dynamics>
+          <damping>0.004</damping>
+        </dynamics>
       </axis>
     </joint>
 
@@ -814,11 +841,14 @@
       <parent>wing_back_right_link</parent>
       <child>motor_back_right_link</child>
       <axis>
+        <xyz>0 0 1</xyz>
         <limit>
           <lower>-1.0e16</lower>
           <upper>1.0e16</upper>
         </limit>
-        <xyz>0 0 1</xyz>
+        <dynamics>
+          <damping>0.004</damping>
+        </dynamics>
       </axis>
     </joint>
 
