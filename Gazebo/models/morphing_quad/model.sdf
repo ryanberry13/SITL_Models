@@ -31,11 +31,36 @@
   ArduPilot parameters
   ====================
 
-  The vehicle is run as an X-frame quadcopter.
+  The vehicle is run as an X-frame quadcopter. The attitude gains are
+  calculated using the VTOL-quicktune.lua script which is enabled with RC9.
   
   For testing the wing tilt servo outputs use the outputs of RC6 and RC7. 
 
+  Parameter        Current  Default
   FRAME_TYPE       1.000000 0.000000 # X (DEFAULT: Plus)
+  ATC_ACCEL_Y_MAX  30000.000000 27000.000000
+  ATC_ACCEL_R_MAX  160000.000000 110000.000000
+  ATC_ACCEL_P_MAX  160000.000000 110000.000000
+  ATC_RAT_RLL_P    0.108000 0.135000
+  ATC_RAT_RLL_I    0.108000 0.135000
+  ATC_RAT_RLL_D    0.002880 0.003600
+  ATC_RAT_RLL_FLTT 40.000000 20.000000
+  ATC_RAT_RLL_FLTD 40.000000 20.000000
+  ATC_RAT_RLL_SMAX 50.000000 0.000000
+  ATC_RAT_PIT_P    0.108000 0.135000
+  ATC_RAT_PIT_I    0.108000 0.135000
+  ATC_RAT_PIT_D    0.002880 0.003600
+  ATC_RAT_PIT_FLTT 40.000000 20.000000
+  ATC_RAT_PIT_FLTD 40.000000 20.000000
+  ATC_RAT_PIT_SMAX 50.000000 0.000000
+  ATC_RAT_YAW_P    0.500000 0.300000
+  ATC_RAT_YAW_I    0.050000 0.020000
+  ATC_RAT_YAW_D    0.010000 0.000000
+  ATC_RAT_YAW_FLTT 40.000000 20.000000
+  ATC_RAT_YAW_FLTD 40.000000 20.000000
+  ATC_RAT_YAW_SMAX 50.000000 0.000000
+  MOT_THST_EXPO    0.550000 0.650000
+  MOT_THST_HOVER   0.125275 0.390000
   SERVO1_MIN       1000.000000 1100.000000
   SERVO1_MAX       2000.000000 1900.000000
   SERVO2_MIN       1000.000000 1100.000000
@@ -50,7 +75,12 @@
   SERVO7_MIN       1000.000000 1100.000000
   SERVO7_MAX       2000.000000 1900.000000
   SERVO7_FUNCTION  57.000000 0.000000 # RCIN7 (DEFAULT: Disabled)
-
+  RC6_TRIM         1000.000000 1500.000000
+  RC7_OPTION       0.000000 7.000000 # Do Nothing (DEFAULT: Save WP)
+  RC8_OPTION       0.000000 39.000000 # Do Nothing (DEFAULT: PrecLoiter Enable)
+  RC9_OPTION       300.000000 0.000000 # Scripting1 (DEFAULT: Do Nothing)
+  SCR_ENABLE       1.000000 0.000000 # Lua Scripts (DEFAULT: None)
+  QUIK_ENABLE      1.0         # Enabled
 -->
 <sdf version="1.9"> 
   <model name="morphing_quad">
@@ -857,6 +887,7 @@
         filename="gz-sim-joint-state-publisher-system">
     </plugin>
 
+    <!-- wing position controllers -->
     <plugin name="gz::sim::systems::JointPositionController"
         filename="gz-sim-joint-position-controller-system">
       <joint_name>wing_front_left_joint</joint_name>
@@ -910,16 +941,20 @@
       <cmd_min>-1.0e4</cmd_min>
     </plugin>
 
-    <plugin name="gz::sim::systems::JointController"
+    <!-- motor velocity controllers -->
+    <!-- <plugin name="gz::sim::systems::JointController"
       filename="gz-sim-joint-controller-system">
       <joint_name>motor_front_left_joint</joint_name>
       <use_force_commands>1</use_force_commands>
       <topic>/model/morphing_quad/joint/motor_front_left_joint/cmd_vel</topic>
       <initial_velocity>0.0</initial_velocity>
-      <p_gain>0.001</p_gain>
-      <d_gain>1.0e-8</d_gain>
-      <cmd_max>1.0e3</cmd_max>
-      <cmd_min>-1.0e3</cmd_min>
+      <p_gain>0.008</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>1.0e-7</d_gain>
+      <i_max>-1</i_max>
+      <i_min>0</i_min>
+      <cmd_max>100.0</cmd_max>
+      <cmd_min>-100.0</cmd_min>
     </plugin>
     <plugin name="gz::sim::systems::JointController"
       filename="gz-sim-joint-controller-system">
@@ -927,10 +962,13 @@
       <use_force_commands>1</use_force_commands>
       <topic>/model/morphing_quad/joint/motor_front_right_joint/cmd_vel</topic>
       <initial_velocity>0.0</initial_velocity>
-      <p_gain>0.001</p_gain>
-      <d_gain>1.0e-8</d_gain>
-      <cmd_max>1.0e3</cmd_max>
-      <cmd_min>-1.0e3</cmd_min>
+      <p_gain>0.008</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>1.0e-7</d_gain>
+      <i_max>-1</i_max>
+      <i_min>0</i_min>
+      <cmd_max>100.0</cmd_max>
+      <cmd_min>-100.0</cmd_min>
     </plugin>
     <plugin name="gz::sim::systems::JointController"
       filename="gz-sim-joint-controller-system">
@@ -938,10 +976,13 @@
       <use_force_commands>1</use_force_commands>
       <topic>/model/morphing_quad/joint/motor_back_left_joint/cmd_vel</topic>
       <initial_velocity>0.0</initial_velocity>
-      <p_gain>0.001</p_gain>
-      <d_gain>1.0e-8</d_gain>
-      <cmd_max>1.0e3</cmd_max>
-      <cmd_min>-1.0e3</cmd_min>
+      <p_gain>0.008</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>1.0e-7</d_gain>
+      <i_max>-1</i_max>
+      <i_min>0</i_min>
+      <cmd_max>100.0</cmd_max>
+      <cmd_min>-100.0</cmd_min>
     </plugin>
     <plugin name="gz::sim::systems::JointController"
       filename="gz-sim-joint-controller-system">
@@ -949,11 +990,14 @@
       <use_force_commands>1</use_force_commands>
       <topic>/model/morphing_quad/joint/motor_back_right_joint/cmd_vel</topic>
       <initial_velocity>0.0</initial_velocity>
-      <p_gain>0.001</p_gain>
-      <d_gain>1.0e-8</d_gain>
-      <cmd_max>1.0e3</cmd_max>
-      <cmd_min>-1.0e3</cmd_min>
-    </plugin>
+      <p_gain>0.008</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>1.0e-7</d_gain>
+      <i_max>-1</i_max>
+      <i_min>0</i_min>
+      <cmd_max>100.0</cmd_max>
+      <cmd_min>-100.0</cmd_min>
+    </plugin> -->
 
     <!-- Motor1 CCW motor_front_right_link -->
     <plugin name="gz::sim::systems::LiftDrag"
@@ -1185,45 +1229,89 @@
       <!-- motor1: ccw -->
       <control channel="0">
         <jointName>motor_front_right_joint</jointName>
-        <multiplier>800</multiplier>
+        <multiplier>1500</multiplier>
         <offset>0</offset>
         <servo_min>1000</servo_min>
         <servo_max>2000</servo_max>
-        <type>COMMAND</type>
-        <cmd_topic>/model/morphing_quad/joint/motor_front_right_joint/cmd_vel</cmd_topic>
+
+        <useForce>1</useForce>
+        <type>VELOCITY</type>
+        <p_gain>0.008</p_gain>
+        <i_gain>0</i_gain>
+        <d_gain>1.0e-7</d_gain>
+        <i_max>-1</i_max>
+        <i_min>0</i_min>
+        <cmd_max>100.0</cmd_max>
+        <cmd_min>-100.0</cmd_min>
+
+        <!-- <type>COMMAND</type>
+        <cmd_topic>/model/morphing_quad/joint/motor_front_right_joint/cmd_vel</cmd_topic> -->
       </control>
 
       <!-- motor2: ccw -->
       <control channel="1">
         <jointName>motor_back_left_joint</jointName>
-        <multiplier>800</multiplier>
+        <multiplier>1500</multiplier>
         <offset>0</offset>
         <servo_min>1000</servo_min>
         <servo_max>2000</servo_max>
-        <type>COMMAND</type>
-        <cmd_topic>/model/morphing_quad/joint/motor_back_left_joint/cmd_vel</cmd_topic>
-        </control>
+
+        <useForce>1</useForce>
+        <type>VELOCITY</type>
+        <p_gain>0.008</p_gain>
+        <i_gain>0</i_gain>
+        <d_gain>1.0e-7</d_gain>
+        <i_max>-1</i_max>
+        <i_min>0</i_min>
+        <cmd_max>100.0</cmd_max>
+        <cmd_min>-100.0</cmd_min>
+
+        <!-- <type>COMMAND</type>
+        <cmd_topic>/model/morphing_quad/joint/motor_back_left_joint/cmd_vel</cmd_topic> -->
+      </control>
 
       <!-- motor3: cw -->
       <control channel="2">
           <jointName>motor_front_left_joint</jointName>
-          <multiplier>-800</multiplier>
+          <multiplier>-1500</multiplier>
           <offset>0</offset>
           <servo_min>1000</servo_min>
           <servo_max>2000</servo_max>
-          <type>COMMAND</type>
-          <cmd_topic>/model/morphing_quad/joint/motor_front_left_joint/cmd_vel</cmd_topic>
+
+          <useForce>1</useForce>
+          <type>VELOCITY</type>
+          <p_gain>0.008</p_gain>
+          <i_gain>0</i_gain>
+          <d_gain>1.0e-7</d_gain>
+          <i_max>-1</i_max>
+          <i_min>0</i_min>
+          <cmd_max>100.0</cmd_max>
+          <cmd_min>-100.0</cmd_min>
+    
+          <!-- <type>COMMAND</type>
+          <cmd_topic>/model/morphing_quad/joint/motor_front_left_joint/cmd_vel</cmd_topic> -->
         </control>
   
       <!-- motor4: cw -->
       <control channel="3">
           <jointName>motor_back_right_joint</jointName>
-          <multiplier>-800</multiplier>
+          <multiplier>-1500</multiplier>
           <offset>0</offset>
           <servo_min>1000</servo_min>
           <servo_max>2000</servo_max>
-          <type>COMMAND</type>
-          <cmd_topic>/model/morphing_quad/joint/motor_back_right_joint/cmd_vel</cmd_topic>
+
+          <useForce>1</useForce>
+          <type>VELOCITY</type>
+          <p_gain>0.008</p_gain>
+          <i_gain>0</i_gain>
+          <d_gain>1.0e-7</d_gain>
+          <i_max>-1</i_max>
+          <i_min>0</i_min>
+          <cmd_max>100.0</cmd_max>
+          <cmd_min>-100.0</cmd_min>
+    
+          <!-- <type>COMMAND</type>
+          <cmd_topic>/model/morphing_quad/joint/motor_back_right_joint/cmd_vel</cmd_topic> -->
         </control>
 
       <!-- front wing tilt -->
