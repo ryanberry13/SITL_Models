@@ -28,8 +28,8 @@
 
   gz topic -t /model/morphing_quad/joint/motor_front_left_joint/cmd_vel -m gz.msgs.Double -p "data: -1.57"
 
-  ArduPilot parameters
-  ====================
+  ArduPilot copter params
+  =======================
 
   The vehicle is run as an X-frame quadcopter. The attitude gains are
   calculated using the VTOL-quicktune.lua script which is enabled with RC9.
@@ -81,7 +81,112 @@
   RC9_OPTION       300.000000 0.000000 # Scripting1 (DEFAULT: Do Nothing)
   SCR_ENABLE       1.000000 0.000000 # Lua Scripts (DEFAULT: None)
   QUIK_ENABLE      1.0         # Enabled
--->
+
+  ArduPilot quadplane params
+  ==========================
+
+  sim_vehicle.py -/-debug -v ArduPlane -f quadplane -/-model json -/-console
+
+  Python to calculate control offset and multiplier for joint pos controllers
+
+  def calc_multiplier_and_offset(lower, upper):
+       offset = (lower/upper)/(1.0 - lower/upper)
+       mult = upper/(1 + offset)
+       return mult, offset
+
+  Parameter        Current  Default
+  AIRSPEED_CRUISE  12.000000 25.000000
+  AIRSPEED_MIN     8.000000 13.000000
+  AIRSPEED_MAX     20.000000 35.000000
+  THR_FAILSAFE     0.000000 1.000000 # Disabled (DEFAULT: Enabled)
+  FLTMODE1         0.000000 10.000000 # Manual (DEFAULT: Auto)
+  FLTMODE2         17.000000 11.000000 # QSTABILIZE (DEFAULT: RTL)
+  FLTMODE3         18.000000 12.000000 # QHOVER (DEFAULT: Loiter)
+  FLTMODE4         17.000000 5.000000 # QSTABILIZE (DEFAULT: FBWA)
+  FLTMODE5         5.000000 19.000000 # FBWA (DEFAULT: QLOITER)
+  FLTMODE6         10.000000 5.000000 # Auto (DEFAULT: FBWA)
+  SCALING_SPEED    12.000000 15.000000
+  ARMING_RUDDER    0.000000 2.000000 # Disabled (DEFAULT: ArmOrDisarm)
+  Q_M_THST_EXPO    0.550000 0.650000
+  Q_M_THST_HOVER   0.127606 0.350000
+  Q_ASSIST_SPEED   10.000000 18.000000
+  Q_OPTIONS        1024.000000 0.000000 #  Disarmed Yaw Tilt-enable motor tilt for yaw when disarmed (DEFAULT: )
+  Q_TRIM_PITCH     5.000000 0.000000
+  Q_TILT_ENABLE    1.000000 0.000000 # Enable (DEFAULT: Disable)
+  Q_TILT_MASK      15.000000 0.000000 # Motor 1|Motor 2|Motor 3|Motor 4 (DEFAULT: )
+  Q_TILT_TYPE      2.000000 0.000000 # VectoredYaw (DEFAULT: Continuous)
+  Q_TILT_YAW_ANGLE 30.000000 0.000000
+  Q_TILT_FIX_ANGLE 30.000000 0.000000
+  Q_TILT_FIX_GAIN  0.200000 0.000000
+  Q_A_ACCEL_Y_MAX  30000.000000 10000.000000
+  Q_A_ACCEL_R_MAX  160000.000000 40000.000000
+  Q_A_ACCEL_P_MAX  160000.000000 40000.000000
+  Q_A_RAT_RLL_P    0.108000 0.150000
+  Q_A_RAT_RLL_I    0.108000 0.250000
+  Q_A_RAT_RLL_FLTT 40.000000 20.000000
+  Q_A_RAT_RLL_FLTD 40.000000 10.000000
+  Q_A_RAT_PIT_P    0.108000 0.150000
+  Q_A_RAT_PIT_I    0.108000 0.250000
+  Q_A_RAT_PIT_FLTT 40.000000 20.000000
+  Q_A_RAT_PIT_FLTD 40.000000 10.000000
+  Q_A_RAT_YAW_P    0.500000 0.180000
+  Q_A_RAT_YAW_I    0.050000 0.018000
+  Q_A_RAT_YAW_D    0.010000 0.000000
+  Q_A_RAT_YAW_FLTT 40.000000 20.000000
+  Q_A_RAT_YAW_FLTD 40.000000 20.000000
+  SERVO1_MIN       1000.000000 1100.000000
+  SERVO1_MAX       2000.000000 1900.000000
+  SERVO2_MIN       1000.000000 1100.000000
+  SERVO2_MAX       2000.000000 1900.000000
+  SERVO4_MIN       1000.000000 1100.000000
+  SERVO4_MAX       2000.000000 1900.000000
+  SERVO5_MIN       1000.000000 1100.000000
+  SERVO5_MAX       2000.000000 1900.000000
+  SERVO6_MIN       1000.000000 1100.000000
+  SERVO6_MAX       2000.000000 1900.000000
+  SERVO7_MIN       1000.000000 1100.000000
+  SERVO7_MAX       2000.000000 1900.000000
+  SERVO8_MIN       1000.000000 1100.000000
+  SERVO8_MAX       2000.000000 1900.000000
+  SERVO9_MIN       1000.000000 1100.000000
+  SERVO9_MAX       2000.000000 1900.000000
+  SERVO9_REVERSED  1.000000 0.000000 # Reversed (DEFAULT: Normal)
+  SERVO9_FUNCTION  75.000000 0.000000 # TiltMotorFrontLeft (DEFAULT: Disabled)
+  SERVO10_MIN      1000.000000 1100.000000
+  SERVO10_MAX      2000.000000 1900.000000
+  SERVO10_REVERSED 1.000000 0.000000 # Reversed (DEFAULT: Normal)
+  SERVO10_FUNCTION 76.000000 0.000000 # TiltMotorFrontRight (DEFAULT: Disabled)
+  SERVO11_MIN      1000.000000 1100.000000
+  SERVO11_MAX      2000.000000 1900.000000
+  SERVO11_REVERSED 1.000000 0.000000 # Reversed (DEFAULT: Normal)
+  SERVO11_FUNCTION 46.000000 0.000000 # TiltMotorRearLeft (DEFAULT: Disabled)
+  SERVO12_MIN      1000.000000 1100.000000
+  SERVO12_MAX      2000.000000 1900.000000
+  SERVO12_REVERSED 1.000000 0.000000 # Reversed (DEFAULT: Normal)
+  SERVO12_FUNCTION 47.000000 0.000000 # TiltMotorRearRight (DEFAULT: Disabled)
+  RC1_MIN          1000.000000 1087.000000
+  RC1_MAX          2000.000000 1886.000000
+  RC2_MIN          1000.000000 1100.000000
+  RC2_MAX          2000.000000 1900.000000
+  RC4_MIN          1000.000000 1100.000000
+  RC4_MAX          2000.000000 1900.000000
+  RC5_MIN          1000.000000 1100.000000
+  RC5_TRIM         1000.000000 1500.000000
+  RC5_MAX          2000.000000 1900.000000
+  RC6_MIN          1000.000000 1100.000000
+  RC6_MAX          2000.000000 1900.000000
+  RC7_MIN          1000.000000 1100.000000
+  RC7_MAX          2000.000000 1900.000000
+  RC8_MIN          1000.000000 1100.000000
+  RC8_MAX          2000.000000 1900.000000
+  RC9_MIN          1000.000000 1100.000000
+  RC9_MAX          2000.000000 1900.000000
+  RC10_MIN         1000.000000 1100.000000
+  RC10_MAX         2000.000000 1900.000000
+  ARSPD_TYPE       0.000000 2.000000 # None (DEFAULT: Analog)
+  SCR_ENABLE       1.000000 0.000000 # Lua Scripts (DEFAULT: None)
+
+  -->
 <sdf version="1.9"> 
   <model name="morphing_quad">
     <pose>0 0 0 0 0 0</pose>
@@ -338,8 +443,8 @@
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
-          <lower>-1.57079632</lower>
-          <upper>1.57079632</upper>
+          <lower>-2.0943951023931953</lower>
+          <upper>0.5235987755982988</upper>
         </limit>
         <dynamics>
           <damping>0.01</damping>
@@ -415,8 +520,8 @@
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
-          <lower>-1.57079632</lower>
-          <upper>1.57079632</upper>
+          <lower>-2.0943951023931953</lower>
+          <upper>0.5235987755982988</upper>
         </limit>
         <dynamics>
           <damping>0.01</damping>
@@ -492,8 +597,8 @@
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
-          <lower>-1.57079632</lower>
-          <upper>1.57079632</upper>
+          <lower>-2.0943951023931953</lower>
+          <upper>0.5235987755982988</upper>
         </limit>
         <dynamics>
           <damping>0.01</damping>
@@ -569,8 +674,8 @@
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
-          <lower>-1.57079632</lower>
-          <upper>1.57079632</upper>
+          <lower>-2.0943951023931953</lower>
+          <upper>0.5235987755982988</upper>
         </limit>
         <dynamics>
           <damping>0.01</damping>
@@ -948,7 +1053,7 @@
         filename="gz-sim-joint-position-controller-system">
       <joint_name>wing_front_left_joint</joint_name>
       <topic>/model/morphing_quad/joint/wing_front_left_joint/cmd_pos</topic>
-      <initial_position>-1.57079632</initial_position>
+      <initial_position>0</initial_position>
       <p_gain>0.4</p_gain>
       <i_gain>0</i_gain>
       <d_gain>1.0e-2</d_gain>
@@ -961,7 +1066,7 @@
         filename="gz-sim-joint-position-controller-system">
       <joint_name>wing_front_right_joint</joint_name>
       <topic>/model/morphing_quad/joint/wing_front_right_joint/cmd_pos</topic>
-      <initial_position>-1.57079632</initial_position>
+      <initial_position>0</initial_position>
       <p_gain>0.4</p_gain>
       <i_gain>0</i_gain>
       <d_gain>1.0e-2</d_gain>
@@ -974,7 +1079,7 @@
         filename="gz-sim-joint-position-controller-system">
       <joint_name>wing_back_left_joint</joint_name>
       <topic>/model/morphing_quad/joint/wing_back_left_joint/cmd_pos</topic>
-      <initial_position>-1.57079632</initial_position>
+      <initial_position>0</initial_position>
       <p_gain>0.4</p_gain>
       <i_gain>0</i_gain>
       <d_gain>1.0e-2</d_gain>
@@ -987,7 +1092,7 @@
         filename="gz-sim-joint-position-controller-system">
       <joint_name>wing_back_right_joint</joint_name>
       <topic>/model/morphing_quad/joint/wing_back_right_joint/cmd_pos</topic>
-      <initial_position>-1.57079632</initial_position>
+      <initial_position>0</initial_position>
       <p_gain>0.4</p_gain>
       <i_gain>0</i_gain>
       <d_gain>1.0e-2</d_gain>
@@ -1055,7 +1160,7 @@
       <cmd_min>-100.0</cmd_min>
     </plugin> -->
 
-    <!-- Motor1 CCW motor_front_right_link -->
+    <!-- motor1 prop blades, ccw, motor_front_right_link -->
     <plugin name="gz::sim::systems::LiftDrag"
       filename="gz-sim-lift-drag-system">
       <a0>0.3</a0>
@@ -1108,7 +1213,7 @@
       <link_name>motor_front_right_link</link_name>
     </plugin>
 
-    <!-- Motor2 CCW motor_back_left_link -->
+    <!-- motor2 prop blades, ccw, motor_back_left_link -->
     <plugin name="gz::sim::systems::LiftDrag"
       filename="gz-sim-lift-drag-system">
       <a0>0.3</a0>
@@ -1161,7 +1266,7 @@
       <link_name>motor_back_left_link</link_name>
     </plugin>
 
-    <!-- Motor3 CW motor_front_left_link -->
+    <!-- motor3 prop blade, cw, motor_front_left_link -->
     <plugin name="gz::sim::systems::LiftDrag"
       filename="gz-sim-lift-drag-system">
       <a0>0.3</a0>
@@ -1214,7 +1319,7 @@
       <link_name>motor_front_left_link</link_name>
     </plugin>
 
-    <!-- Motor4 CW motor_back_right_link -->
+    <!-- motor4 prop blades, cw, motor_back_right_link -->
     <plugin name="gz::sim::systems::LiftDrag"
       filename="gz-sim-lift-drag-system">
       <a0>0.3</a0>
@@ -1265,6 +1370,76 @@
       <forward>-0.866025404 0.5 0</forward>
       <upward>0 0 1</upward>
       <link_name>motor_back_right_link</link_name>
+    </plugin>
+
+    <!-- wings -->
+    <plugin filename="gz-sim-lift-drag-system"
+        name="gz::sim::systems::LiftDrag">
+      <a0>0.13</a0>
+      <cla>3.7</cla>
+      <cda>0.06417112299</cda>
+      <cma>0.0</cma>
+      <alpha_stall>0.3391428111</alpha_stall>
+      <cla_stall>-3.85</cla_stall>
+      <cda_stall>-0.9233984055</cda_stall>
+      <cma_stall>0.0</cma_stall>
+      <cp>0.0275 0 0</cp>
+      <area>0.03</area>
+      <air_density>1.2041</air_density>
+      <forward>1 0 0</forward>
+      <upward>0 0 1</upward>
+      <link_name>wing_front_right_link</link_name>
+    </plugin>
+    <plugin filename="gz-sim-lift-drag-system"
+        name="gz::sim::systems::LiftDrag">
+      <a0>0.13</a0>
+      <cla>3.7</cla>
+      <cda>0.06417112299</cda>
+      <cma>0.0</cma>
+      <alpha_stall>0.3391428111</alpha_stall>
+      <cla_stall>-3.85</cla_stall>
+      <cda_stall>-0.9233984055</cda_stall>
+      <cma_stall>0.0</cma_stall>
+      <cp>0.0275 0 0</cp>
+      <area>0.03</area>
+      <air_density>1.2041</air_density>
+      <forward>1 0 0</forward>
+      <upward>0 0 1</upward>
+      <link_name>wing_front_left_link</link_name>
+    </plugin>
+    <plugin filename="gz-sim-lift-drag-system"
+        name="gz::sim::systems::LiftDrag">
+      <a0>0.13</a0>
+      <cla>3.7</cla>
+      <cda>0.06417112299</cda>
+      <cma>0.0</cma>
+      <alpha_stall>0.3391428111</alpha_stall>
+      <cla_stall>-3.85</cla_stall>
+      <cda_stall>-0.9233984055</cda_stall>
+      <cma_stall>0.0</cma_stall>
+      <cp>0.0275 0 0</cp>
+      <area>0.03</area>
+      <air_density>1.2041</air_density>
+      <forward>1 0 0</forward>
+      <upward>0 0 1</upward>
+      <link_name>wing_back_right_link</link_name>
+    </plugin>
+    <plugin filename="gz-sim-lift-drag-system"
+        name="gz::sim::systems::LiftDrag">
+      <a0>0.13</a0>
+      <cla>3.7</cla>
+      <cda>0.06417112299</cda>
+      <cma>0.0</cma>
+      <alpha_stall>0.3391428111</alpha_stall>
+      <cla_stall>-3.85</cla_stall>
+      <cda_stall>-0.9233984055</cda_stall>
+      <cma_stall>0.0</cma_stall>
+      <cp>0.0275 0 0</cp>
+      <area>0.03</area>
+      <air_density>1.2041</air_density>
+      <forward>1 0 0</forward>
+      <upward>0 0 1</upward>
+      <link_name>wing_back_left_link</link_name>
     </plugin>
 
     <plugin name="ArduPilotPlugin" filename="ArduPilotPlugin">
@@ -1283,7 +1458,7 @@
       <imuName>base_link::imu_sensor</imuName>
 
       <!-- motor1: ccw -->
-      <control channel="0">
+      <control channel="4">
         <jointName>motor_front_right_joint</jointName>
         <multiplier>1500</multiplier>
         <offset>0</offset>
@@ -1305,7 +1480,7 @@
       </control>
 
       <!-- motor2: ccw -->
-      <control channel="1">
+      <control channel="5">
         <jointName>motor_back_left_joint</jointName>
         <multiplier>1500</multiplier>
         <offset>0</offset>
@@ -1327,7 +1502,7 @@
       </control>
 
       <!-- motor3: cw -->
-      <control channel="2">
+      <control channel="6">
           <jointName>motor_front_left_joint</jointName>
           <multiplier>-1500</multiplier>
           <offset>0</offset>
@@ -1349,7 +1524,7 @@
         </control>
   
       <!-- motor4: cw -->
-      <control channel="3">
+      <control channel="7">
           <jointName>motor_back_right_joint</jointName>
           <multiplier>-1500</multiplier>
           <offset>0</offset>
@@ -1371,19 +1546,19 @@
         </control>
 
       <!-- front wing tilt -->
-      <control channel="5">
+      <control channel="8">
         <jointName>wing_front_left_joint</jointName>
-        <multiplier>-1.57079632</multiplier>
-        <offset>0</offset>
+        <multiplier>-2.6179938779914944</multiplier>
+        <offset>-0.2</offset>
         <servo_min>1000</servo_min>
         <servo_max>2000</servo_max>
         <type>COMMAND</type>
         <cmd_topic>/model/morphing_quad/joint/wing_front_left_joint/cmd_pos</cmd_topic>
       </control>
-      <control channel="5">
+      <control channel="9">
         <jointName>wing_front_right_joint</jointName>
-        <multiplier>-1.57079632</multiplier>
-        <offset>0</offset>
+        <multiplier>-2.6179938779914944</multiplier>
+        <offset>-0.2</offset>
         <servo_min>1000</servo_min>
         <servo_max>2000</servo_max>
         <type>COMMAND</type>
@@ -1391,19 +1566,19 @@
       </control>
 
       <!-- rear wing tilt -->
-      <control channel="6">
+      <control channel="10">
         <jointName>wing_back_left_joint</jointName>
-        <multiplier>-1.57079632</multiplier>
-        <offset>0</offset>
+        <multiplier>-2.6179938779914944</multiplier>
+        <offset>-0.2</offset>
         <servo_min>1000</servo_min>
         <servo_max>2000</servo_max>
         <type>COMMAND</type>
         <cmd_topic>/model/morphing_quad/joint/wing_back_left_joint/cmd_pos</cmd_topic>
       </control>
-      <control channel="6">
+      <control channel="11">
         <jointName>wing_back_right_joint</jointName>
-        <multiplier>-1.57079632</multiplier>
-        <offset>0</offset>
+        <multiplier>-2.6179938779914944</multiplier>
+        <offset>-0.2</offset>
         <servo_min>1000</servo_min>
         <servo_max>2000</servo_max>
         <type>COMMAND</type>
