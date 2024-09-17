@@ -1,14 +1,6 @@
 """
 GST RTSP Server Example
 
-Adapted from
-
-https://github.com/tamaggo/gstreamer-examples
-https://github.com/tamaggo/gstreamer-examples/blob/master/test_gst_rtsp_server.py
-
-Original code by Jerome Carretero (Tamaggo)
-
-
 Usage
 -----
 
@@ -20,6 +12,14 @@ Display the RTSP stream
 
 gst-launch-1.0 rtspsrc location=rtsp://localhost:8554/test latency=50 ! decodebin ! autovideosink
 
+
+Acknowledgments
+---------------
+
+GStreamer RTSP server example adapted from code by Jerome Carretero (Tamaggo)
+
+https://github.com/tamaggo/gstreamer-examples
+https://github.com/tamaggo/gstreamer-examples/blob/master/test_gst_rtsp_server.py
 """
 
 # Copyright (c) 2015 Tamaggo Inc.
@@ -76,7 +76,7 @@ class VideoTestMediaFactory(GstRtspServer.RTSPMediaFactory):
 
 class GstServer:
     """
-    A GStreamer server streaming three different test patterns.
+    A GStreamer RTSP server streaming three different test patterns:
 
     rtsp://127.0.0.1:8554/test
     rtsp://127.0.0.1:8554/ball
