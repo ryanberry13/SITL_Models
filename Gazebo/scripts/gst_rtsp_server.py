@@ -54,12 +54,18 @@ from gi.repository import GLib
 
 
 class VideoTestMediaFactory(GstRtspServer.RTSPMediaFactory):
+    """
+    Create a GStreamer pipeline for a videotestsrc source.
+
+    The default videotestsrc uses the smpte test pattern. Other test patterns
+    may be specified when initialising the class.
+    """
     def __init__(self, pattern="smpte"):
         GstRtspServer.RTSPMediaFactory.__init__(self)
-        self._pattern = pattern
+        self.pattern = pattern
 
     def do_create_element(self, url):
-        s_src = f"videotestsrc pattern={self._pattern} ! video/x-raw,rate=30,width=640,height=480,format=I420"
+        s_src = f"videotestsrc pattern={self.pattern} ! video/x-raw,rate=30,width=640,height=480,format=I420"
         s_h264 = "x264enc tune=zerolatency"
         pipeline_str = f"( {s_src} ! queue max-size-buffers=1 name=q_enc ! {s_h264} ! rtph264pay name=pay0 pt=96 )"
         if len(sys.argv) > 1:
@@ -69,6 +75,13 @@ class VideoTestMediaFactory(GstRtspServer.RTSPMediaFactory):
 
 
 class GstServer:
+    """
+    A GStreamer server streaming three different test patterns.
+
+    rtsp://127.0.0.1:8554/test
+    rtsp://127.0.0.1:8554/ball
+    rtsp://127.0.0.1:8554/snow
+    """
     def __init__(self):
         self.server = GstRtspServer.RTSPServer()
         self.server.set_address("127.0.0.1")
