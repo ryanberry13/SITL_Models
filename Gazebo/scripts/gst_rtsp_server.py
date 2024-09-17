@@ -7,6 +7,19 @@ https://github.com/tamaggo/gstreamer-examples
 https://github.com/tamaggo/gstreamer-examples/blob/master/test_gst_rtsp_server.py
 
 Original code by Jerome Carretero (Tamaggo)
+
+
+Usage
+-----
+
+Start the server:
+
+python ./gst_rtsp_server.py
+
+Display the RTSP stream
+
+gst-launch-1.0 rtspsrc location=rtsp://localhost:8554/test latency=50 ! decodebin ! autovideosink
+
 """
 
 # Copyright (c) 2015 Tamaggo Inc.
@@ -40,16 +53,15 @@ from gi.repository import GstRtspServer
 from gi.repository import GLib
 
 
-class MediaFactory(GstRtspServer.RTSPMediaFactory):
-    def __init__(self):
+class VideoTestMediaFactory(GstRtspServer.RTSPMediaFactory):
+    def __init__(self, pattern="smpte"):
         GstRtspServer.RTSPMediaFactory.__init__(self)
+        self._pattern = pattern
 
     def do_create_element(self, url):
-        s_src = "videotestsrc ! video/x-raw,rate=30,width=640,height=480,format=I420"
+        s_src = f"videotestsrc pattern={self._pattern} ! video/x-raw,rate=30,width=640,height=480,format=I420"
         s_h264 = "x264enc tune=zerolatency"
-        pipeline_str = "( {s_src} ! queue max-size-buffers=1 name=q_enc ! {s_h264} ! rtph264pay name=pay0 pt=96 )".format(
-            **locals()
-        )
+        pipeline_str = f"( {s_src} ! queue max-size-buffers=1 name=q_enc ! {s_h264} ! rtph264pay name=pay0 pt=96 )"
         if len(sys.argv) > 1:
             pipeline_str = " ".join(sys.argv[1:])
         print(pipeline_str)
@@ -59,10 +71,23 @@ class MediaFactory(GstRtspServer.RTSPMediaFactory):
 class GstServer:
     def __init__(self):
         self.server = GstRtspServer.RTSPServer()
-        media_factory = MediaFactory()
-        media_factory.set_shared(True)
+        self.server.set_address("127.0.0.1")
+        self.server.set_service("8554")
+
+        media_factory1 = VideoTestMediaFactory()
+        media_factory1.set_shared(True)
+
+        media_factory2 = VideoTestMediaFactory("ball")
+        media_factory2.set_shared(True)
+
+        media_factory3 = VideoTestMediaFactory("snow")
+        media_factory3.set_shared(True)
+
         mount_points = self.server.get_mount_points()
-        mount_points.add_factory("/test", media_factory)
+        mount_points.add_factory("/test", media_factory1)
+        mount_points.add_factory("/ball", media_factory2)
+        mount_points.add_factory("/snow", media_factory3)
+
         self.server.attach(None)
 
 
