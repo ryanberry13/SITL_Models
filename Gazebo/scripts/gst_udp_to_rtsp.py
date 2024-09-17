@@ -35,7 +35,7 @@ python ./gst_udp_to_rtsp.py
 
 rtspsrc
 
-gst-launch-1.0 rtspsrc location=rtsp://localhost:8554/gz/camera latency=50 ! decodebin ! autovideosink
+gst-launch-1.0 rtspsrc location=rtsp://localhost:8554/camera latency=50 ! decodebin ! autovideosink
 
 
 Acknowledgments
