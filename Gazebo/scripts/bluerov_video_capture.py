@@ -2,6 +2,8 @@
 
 """
 BlueRov video capture class
+
+https://www.ardusub.com/developers/opencv.html
 """
 
 import cv2
