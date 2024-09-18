@@ -270,7 +270,7 @@ class Video:
         return Gst.FlowReturn.OK
 
 
-class CameraPanel(wx.Panel):
+class ImagePanel(wx.Panel):
     def __init__(self, parent, video, camera_target_tracker, gimbal_control, fps=30):
         wx.Panel.__init__(self, parent)
 
@@ -786,7 +786,7 @@ def main():
     wx_frame = wx.Frame(None)
 
     # create the camera panel
-    camera_panel = CameraPanel(
+    image_panel = ImagePanel(
         wx_frame, video, camera_target_tracker, gimbal_control, fps=30
     )
 

@@ -176,7 +176,7 @@ class Video:
 # Wx camera panel
 
 
-class CameraPanel(wx.Panel):
+class ImagePanel(wx.Panel):
     def __init__(self, parent, video, fps=30):
         wx.Panel.__init__(self, parent)
 
@@ -424,7 +424,7 @@ def main():
 
     # Create the video and camera panel
     video = Video(port=5600)
-    # camera_panel = CameraPanel(wx_frame, video, fps=30)
+    # image_panel = ImagePanel(wx_frame, video, fps=30)
 
     wx_frame.Show()
     app.MainLoop()
