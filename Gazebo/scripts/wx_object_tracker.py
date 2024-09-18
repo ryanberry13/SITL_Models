@@ -1,12 +1,13 @@
 """
 Simple OpenCV object tracker using wxWidgets
 
-References
+Acknowledgments
+---------------
 
 Video class to capture GStreamer frames
   https://www.ardusub.com/developers/opencv.html
 
-CameraPanel class to display openCV images in wxWidgets
+ImagePanel class to display openCV images in wxWidgets
   https://stackoverflow.com/questions/14804741/opencv-integration-with-wxpython
 
 

@@ -32,6 +32,35 @@ gz topic -t /gimbal/cmd_roll -m gz.msgs.Double -p "data: 0.5"
 gz topic -t /gimbal/cmd_pitch -m gz.msgs.Double -p "data: 0.5" 
 gz topic -t /gimbal/cmd_yaw -m gz.msgs.Double -p "data: 0.5" 
 
+
+ArduPilot SITL
+
+Run ArduPilot SITL to control the camera and gimbal in the omnirover_playpen.sdf
+world:
+
+sim_vehicle.py --debug -v Rover -f rover --model json --console
+
+Parameter        Current  Default
+CAM1_TYPE        1.000000 0.000000 # Servo (DEFAULT: None)
+CAM1_TRK_ENABLE  1.000000 0.000000
+CAM1_TRK_SYSID   245.000000 0.000000
+MNT1_TYPE        1.000000 0.000000 # Servo (DEFAULT: None)
+MNT1_PITCH_MIN   -135.000000 -90.000000
+MNT1_PITCH_MAX   45.000000 20.000000
+MNT1_YAW_MIN     -160.000000 -180.000000
+MNT1_YAW_MAX     160.000000 180.000000
+SERVO9_FUNCTION  8.000000 0.000000 # Mount1Roll (DEFAULT: Disabled)
+SERVO10_FUNCTION 7.000000 0.000000 # Mount1Pitch (DEFAULT: Disabled)
+SERVO11_FUNCTION 6.000000 0.000000 # Mount1Yaw (DEFAULT: Disabled)
+SERVO12_FUNCTION 62.000000 0.000000 # RCIN12 (DEFAULT: Disabled)
+RC9_OPTION       212.000000 0.000000 # Mount1 Roll (DEFAULT: Do Nothing)
+RC10_OPTION      213.000000 0.000000 # Mount1 Pitch (DEFAULT: Do Nothing)
+RC11_OPTION      214.000000 0.000000 # Mount1 Yaw (DEFAULT: Do Nothing)
+RC12_TRIM        1100.000000 1500.000000
+RC12_OPTION      167.000000 0.000000 # Camera Zoom (DEFAULT: Do Nothing)
+RC13_OPTION      174.000000 0.000000 # Camera Image Tracking (DEFAULT: Do Nothing)
+
+
 Gazebo
 ------
 
@@ -72,6 +101,15 @@ must be altered from the default
 
 otherwise the `OdometryPublisher` will also publish to `/model/{model}/pose`
 conflicting with the output from the `PosePublisher`
+
+Acknowledgments
+---------------
+
+Video class to capture GStreamer frames
+  https://www.ardusub.com/developers/opencv.html
+
+ImagePanel class to display openCV images in wxWidgets
+  https://stackoverflow.com/questions/14804741/opencv-integration-with-wxpython
 """
 
 import copy

@@ -19,21 +19,21 @@ sink:       udpsink host=127.0.0.1 port=5600
 A udpsink example streaming a test pattern using the same settings as the basic
 pipeline in the Gazebo GstCameraPlugin.
 
-udpsink
+1. udpsink
 
 gst-launch-1.0 -v videotestsrc ! 'video/x-raw,format=I420,width=640,height=480,framerate=50/1' ! queue ! videoconvert ! x264enc bitrate=800 speed-preset=6 tune=4 key-int-max=10 ! rtph264pay ! udpsink host=127.0.0.1 port=5600
 
-Display the udpsink directly
+2a. Display the udpsink directly
 
 udpsrc
 
 gst-launch-1.0 -v udpsrc address=127.0.0.1 port=5600 caps='application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264' ! rtph264depay ! avdec_h264 ! videoconvert ! autovideosink sync=false
 
-Or run the udpsink, this script to convert to RTSP, and view the RTSP stream:
+2b. Or run the udpsink, this script to convert to RTSP, and view the RTSP stream:
 
 python ./gst_udp_to_rtsp.py
 
-rtspsrc
+3. rtspsrc
 
 gst-launch-1.0 rtspsrc location=rtsp://localhost:8554/camera latency=50 ! decodebin ! autovideosink
 

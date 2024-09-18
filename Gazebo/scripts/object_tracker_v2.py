@@ -1,5 +1,11 @@
 """
 Simple OpenCV object tracker
+
+Acknowledgments
+---------------
+
+Video class to capture GStreamer frames
+  https://www.ardusub.com/developers/opencv.html
 """
 
 import copy

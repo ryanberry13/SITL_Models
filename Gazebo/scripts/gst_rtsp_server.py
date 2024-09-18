@@ -4,11 +4,11 @@ GST RTSP Server Example
 Usage
 -----
 
-Start the server:
+1. Start the server:
 
 python ./gst_rtsp_server.py
 
-Display the RTSP stream
+2. Display the RTSP stream
 
 gst-launch-1.0 rtspsrc location=rtsp://localhost:8554/test latency=50 ! decodebin ! autovideosink
 
