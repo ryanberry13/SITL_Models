@@ -320,23 +320,28 @@ class ImagePanel(wx.Panel):
         if self._video_stream.frame_available():
             frame = copy.deepcopy(self._video_stream.frame())
 
-            # create 50x50 px green square about image point
-            image_point = self._object_tracker.image_point()
-            u = int(image_point[0])
-            v = int(image_point[1])
-            x1 = u - 25
-            y1 = v - 25
-            x2 = u + 25
-            y2 = v + 25
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)
+            # update tracker with frame and get box
+            self._object_tracker.update(frame)
+            success, box = self._object_tracker.box()
+            if success:
+                (x, y, w, h) = [int(v) for v in box]
+                x1 = x
+                y1 = y
+                x2 = x1 + w
+                y2 = y1 + h
+                u = x1 + w // 2
+                v = y1 + h // 2
+                # draw box around target
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)
+                # update gimbal controller
+                self._gimbal_controller.update_center(u, v)
+            else:
+                print("Tracking failure detected.")
 
             # Convert frame to bitmap for wxFrame
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.bmp.CopyFromBuffer(frame)
             self.Refresh()
-
-            # gimbal control - probably does not need to be in the app?
-            self._gimbal_controller.update_center(u, v)
 
 
 class Pose:
@@ -485,10 +490,6 @@ class PoseBasedObjectTracker:
         # image point
         self._image_point = [0, 0]
 
-        # create and start the update thread
-        self._update_thread = threading.Thread(target=self.update)
-        self._update_thread.start()
-
     def target_pose_v_cb(self, msg: Pose_V):
         with self._mutex:
             self._target_pose_v_msg = msg
@@ -518,43 +519,38 @@ class PoseBasedObjectTracker:
             print("camera info")
             print(self._camera_info_msg)
 
-    def update(self):
-        update_rate = 10.0
-        update_period = 1.0 / update_rate
-        while True:
-            if self._camera_pose_v_msg is not None:
-                world = self._world_name
-                body = self._camera_frame_id
-                self._camera_pose = self.body_to_world(
-                    self._camera_pose_v_msg, world, body
-                )
-                # print(self._camera_pose)
-                # print()
+    def update(self, frame):
+        if self._camera_pose_v_msg is not None:
+            world = self._world_name
+            body = self._camera_frame_id
+            self._camera_pose = self.body_to_world(
+                self._camera_pose_v_msg, world, body
+            )
+            # print(self._camera_pose)
+            # print()
 
-            if self._target_pose_v_msg is not None:
-                world = self._world_name
-                body = self._target_frame_id
-                self._target_pose = self.body_to_world(
-                    self._target_pose_v_msg, world, body
-                )
-                # print(self._target_pose)
-                # print()
+        if self._target_pose_v_msg is not None:
+            world = self._world_name
+            body = self._target_frame_id
+            self._target_pose = self.body_to_world(
+                self._target_pose_v_msg, world, body
+            )
+            # print(self._target_pose)
+            # print()
 
-            if (
-                (self._target_pose is not None)
-                and (self._camera_pose is not None)
-                and (self._camera_info_msg is not None)
-            ):
-                self._camera_info = CameraInformation(self._camera_info_msg)
-                # print(self._camera_info)
+        if (
+            (self._target_pose is not None)
+            and (self._camera_pose is not None)
+            and (self._camera_info_msg is not None)
+        ):
+            self._camera_info = CameraInformation(self._camera_info_msg)
+            # print(self._camera_info)
 
-                # projection matrix (=opencv camera_matrix)
-                camera_matrix = self._camera_info.camera_matrix
-                self._image_point = PoseBasedObjectTracker.project_point(
-                    camera_matrix, self._camera_pose, self._target_pose
-                )
-
-            time.sleep(update_period)
+            # projection matrix (=opencv camera_matrix)
+            camera_matrix = self._camera_info.camera_matrix
+            self._image_point = PoseBasedObjectTracker.project_point(
+                camera_matrix, self._camera_pose, self._target_pose
+            )
 
     def body_to_world(self, pose_v_msg, world, body):
         """
@@ -610,6 +606,16 @@ class PoseBasedObjectTracker:
 
     def image_point(self):
         return self._image_point
+
+    def box(self):
+        u = self._image_point[0]
+        v = self._image_point[1]
+        w = 50.0
+        h = 50.0
+        x = u - 0.5 * w
+        y = v - 0.5 * h
+        box = [x, y, w, h]
+        return True, box
 
     @staticmethod
     def project_point(camera_matrix, camera_pose, target_pose):
@@ -705,6 +711,18 @@ class PoseBasedObjectTracker:
         # )
 
         return [u, v]
+
+
+class CSTRObjectTracker:
+    def __init__(self):
+        self._image_point = [0, 0]
+        self.tracker = cv2.legacy.TrackerCSRT_create()
+
+    def update(self, frame):
+        pass
+
+    def image_point(self):
+        return self._image_point
 
 
 # from ardupilot/libraries/AP_Camera/examples/tracking.py
