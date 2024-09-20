@@ -68,6 +68,11 @@
       <pose degrees="true">0 0 0.1 0 0 90</pose>
     </include>
 
+    <include>
+      <uri>model://iris_with_gimbal</uri>
+      <pose degrees="true">0 -4 0.3 0 0 90</pose>
+    </include>
+
     <!-- Gimbal mount fixed to world. -->
     <model name="mount">
       <pose degrees="true">0 -5 0 0 0 90</pose>
@@ -203,8 +208,8 @@
         <p_gain>2</p_gain>
       </plugin>
 
-      <plugin name="ArduPilotPlugin"
-        filename="ArduPilotPlugin">
+      <plugin name="ArduPilotPlugin_DISABLE"
+        filename="ArduPilotPlugin_DISABLE">
         <fdm_addr>127.0.0.1</fdm_addr>
         <fdm_port_in>9002</fdm_port_in>
         <connectionTimeoutMaxCount>5</connectionTimeoutMaxCount>
