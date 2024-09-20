@@ -10,13 +10,21 @@ The defaults in this script use the `omnirover_playpen.sdf` world
 
 gz sim -v4 -r omnirover_playpen.sdf
 
-which contains a 3DoF gimbal camera on a model named `mount` and a
-rover named `omni4rover`. These are the `camera_model` and `target_model`
+which contains a 3DoF gimbal camera on a model named `mount`, an iris quadcopter
+and a rover named `omni4rover`. These are the `camera_model` and `target_model`
 respectively.
 
 Video streaming is enabled with:
 
-gz topic -t /world/playpen/model/mount/model/gimbal/link/pitch_link/sensor/camera/image/enable_streaming -m gz.msgs.Boolean -p "data: 1"
+gz topic -t /world/playpen/model/iris_with_gimbal/model/gimbal/link/pitch_link/sensor/camera/image/enable_streaming -m gz.msgs.Boolean -p "data: 1"
+
+Convert the udp stream to rtps:
+
+python ./src/ardupilot_sitl_models/Gazebo/scripts/gst_udp_to_rtsp.py
+
+Check the output of the rtps stream:
+
+python ./src/ardupilot_sitl_models/Gazebo/scripts/gst_rtsp_to_wx.py
 
 The script may then be run:
 
@@ -137,12 +145,146 @@ gi.require_version("Gst", "1.0")
 from gi.repository import Gst
 
 
-class Video:
-    """BlueRov video capture class constructor
+# class Video:
+#     """BlueRov video capture class constructor
+
+#     Attributes:
+#         port (int): Video UDP port
+#         video_codec (string): Source h264 parser
+#         video_decode (string): Transform YUV (12bits) to BGR (24bits)
+#         video_pipe (object): GStreamer top-level pipeline
+#         video_sink (object): Gstreamer sink element
+#         video_sink_conf (string): Sink configuration
+#         video_source (string): Udp source ip and port
+#         latest_frame (np.ndarray): Latest retrieved video frame
+#     """
+
+#     def __init__(self, port=5600):
+#         """Summary
+
+#         Args:
+#             port (int, optional): UDP port
+#         """
+
+#         Gst.init(None)
+
+#         self.port = port
+#         self.latest_frame = self._new_frame = None
+
+#         # [Software component diagram](https://www.ardusub.com/software/components.html)
+#         # UDP video stream (:5600)
+#         self.video_source = "udpsrc port={}".format(self.port)
+#         # [Rasp raw image](http://picamera.readthedocs.io/en/release-0.7/recipes2.html#raw-image-capture-yuv-format)
+#         # Cam -> CSI-2 -> H264 Raw (YUV 4-4-4 (12bits) I420)
+#         self.video_codec = (
+#             "! application/x-rtp, payload=96 ! rtph264depay ! h264parse ! avdec_h264"
+#         )
+#         # Python don't have nibble, convert YUV nibbles (4-4-4) to OpenCV standard BGR bytes (8-8-8)
+#         self.video_decode = (
+#             "! decodebin ! videoconvert ! video/x-raw,format=(string)BGR ! videoconvert"
+#         )
+#         # Create a sink to get data
+#         self.video_sink_conf = (
+#             "! appsink emit-signals=true sync=false max-buffers=2 drop=true"
+#         )
+
+#         self.video_pipe = None
+#         self.video_sink = None
+
+#         self.run()
+
+#     def start_gst(self, config=None):
+#         """ Start gstreamer pipeline and sink
+#         Pipeline description list e.g:
+#             [
+#                 'videotestsrc ! decodebin', \
+#                 '! videoconvert ! video/x-raw,format=(string)BGR ! videoconvert',
+#                 '! appsink'
+#             ]
+
+#         Args:
+#             config (list, optional): Gstreamer pileline description list
+#         """
+
+#         if not config:
+#             config = [
+#                 "videotestsrc ! decodebin",
+#                 "! videoconvert ! video/x-raw,format=(string)BGR ! videoconvert",
+#                 "! appsink",
+#             ]
+
+#         command = " ".join(config)
+#         self.video_pipe = Gst.parse_launch(command)
+#         self.video_pipe.set_state(Gst.State.PLAYING)
+#         self.video_sink = self.video_pipe.get_by_name("appsink0")
+
+#     @staticmethod
+#     def gst_to_opencv(sample):
+#         """Transform byte array into np array
+
+#         Args:
+#             sample (TYPE): Description
+
+#         Returns:
+#             TYPE: Description
+#         """
+#         buf = sample.get_buffer()
+#         caps_structure = sample.get_caps().get_structure(0)
+#         array = np.ndarray(
+#             (caps_structure.get_value("height"), caps_structure.get_value("width"), 3),
+#             buffer=buf.extract_dup(0, buf.get_size()),
+#             dtype=np.uint8,
+#         )
+#         return array
+
+#     def frame(self):
+#         """Get Frame
+
+#         Returns:
+#             np.ndarray: latest retrieved image frame
+#         """
+#         if self.frame_available:
+#             self.latest_frame = self._new_frame
+#             # reset to indicate latest frame has been 'consumed'
+#             self._new_frame = None
+#         return self.latest_frame
+
+#     def frame_available(self):
+#         """Check if a new frame is available
+
+#         Returns:
+#             bool: true if a new frame is available
+#         """
+#         return self._new_frame is not None
+
+#     def run(self):
+#         """Get frame to update _new_frame"""
+
+#         self.start_gst(
+#             [
+#                 self.video_source,
+#                 self.video_codec,
+#                 self.video_decode,
+#                 self.video_sink_conf,
+#             ]
+#         )
+
+#         self.video_sink.connect("new-sample", self.callback)
+
+#     def callback(self, sink):
+#         sample = sink.emit("pull-sample")
+#         self._new_frame = self.gst_to_opencv(sample)
+
+#         return Gst.FlowReturn.OK
+
+
+class VideoStream:
+    """BlueRov video capture class constructor - adapted to capture rtspsrc
 
     Attributes:
-        port (int): Video UDP port
-        video_codec (string): Source h264 parser
+        address (string): RTSP address
+        port (int): RTSP port
+        mount_point (string): video stream mount point
         video_decode (string): Transform YUV (12bits) to BGR (24bits)
         video_pipe (object): GStreamer top-level pipeline
         video_sink (object): Gstreamer sink element
@@ -151,27 +293,23 @@ class Video:
         latest_frame (np.ndarray): Latest retrieved video frame
     """
 
-    def __init__(self, port=5600):
-        """Summary
-
-        Args:
-            port (int, optional): UDP port
-        """
-
+    def __init__(
+        self, address="127.0.0.1", port=8554, mount_point="/camera", latency=50
+    ):
         Gst.init(None)
 
+        self.address = address
         self.port = port
+        self.mount_point = mount_point
+        self.latency = latency
+
         self.latest_frame = self._new_frame = None
 
-        # [Software component diagram](https://www.ardusub.com/software/components.html)
-        # UDP video stream (:5600)
-        self.video_source = "udpsrc port={}".format(self.port)
-        # [Rasp raw image](http://picamera.readthedocs.io/en/release-0.7/recipes2.html#raw-image-capture-yuv-format)
-        # Cam -> CSI-2 -> H264 Raw (YUV 4-4-4 (12bits) I420)
-        self.video_codec = (
-            "! application/x-rtp, payload=96 ! rtph264depay ! h264parse ! avdec_h264"
+        self.video_source = (
+            f"rtspsrc location=rtsp://{address}:{port}{mount_point} latency={latency}"
         )
-        # Python don't have nibble, convert YUV nibbles (4-4-4) to OpenCV standard BGR bytes (8-8-8)
+
+        # Python does not have nibble, convert YUV nibbles (4-4-4) to OpenCV standard BGR bytes (8-8-8)
         self.video_decode = (
             "! decodebin ! videoconvert ! video/x-raw,format=(string)BGR ! videoconvert"
         )
@@ -255,7 +393,6 @@ class Video:
         self.start_gst(
             [
                 self.video_source,
-                self.video_codec,
                 self.video_decode,
                 self.video_sink_conf,
             ]
@@ -271,12 +408,12 @@ class Video:
 
 
 class ImagePanel(wx.Panel):
-    def __init__(self, parent, video, camera_target_tracker, gimbal_control, fps=30):
+    def __init__(self, parent, video_stream, object_tracker, gimbal_controller, fps=30):
         wx.Panel.__init__(self, parent)
 
-        self._video = video
-        self._camera_target_tracker = camera_target_tracker
-        self._gimbal_control = gimbal_control
+        self._video_stream = video_stream
+        self._object_tracker = object_tracker
+        self._gimbal_controller = gimbal_controller
 
         # Shared between threads
         self._frame_lock = threading.Lock()
@@ -284,15 +421,15 @@ class ImagePanel(wx.Panel):
 
         print("Waiting for video stream...")
         waited = 0
-        while not self._video.frame_available():
+        while not self._video_stream.frame_available():
             waited += 1
             print("\r  Frame not available (x{})".format(waited), end="")
             cv2.waitKey(30)
         print("\nSuccess! Video stream available")
 
-        if self._video.frame_available():
+        if self._video_stream.frame_available():
             # Only retrieve and display a frame if it's new
-            frame = copy.deepcopy(self._video.frame())
+            frame = copy.deepcopy(self._video_stream.frame())
 
             # Frame size
             height, width, _ = frame.shape
@@ -313,11 +450,11 @@ class ImagePanel(wx.Panel):
         dc.DrawBitmap(self.bmp, 0, 0)
 
     def NextFrame(self, event):
-        if self._video.frame_available():
-            frame = copy.deepcopy(self._video.frame())
+        if self._video_stream.frame_available():
+            frame = copy.deepcopy(self._video_stream.frame())
 
             # create 50x50 px green square about image point
-            image_point = self._camera_target_tracker.image_point()
+            image_point = self._object_tracker.image_point()
             u = int(image_point[0])
             v = int(image_point[1])
             x1 = u - 25
@@ -332,7 +469,7 @@ class ImagePanel(wx.Panel):
             self.Refresh()
 
             # gimbal control - probably does not need to be in the app?
-            self._gimbal_control.update_center(u, v)
+            self._gimbal_controller.update_center(u, v)
 
 
 class Pose:
@@ -409,7 +546,7 @@ class CameraInformation:
         return np.array(P)
 
 
-class CameraTargetTracker:
+class PoseBasedObjectTracker:
     """
     Calculate the position in pixels of a tracked object in the camera image.
     """
@@ -446,7 +583,7 @@ class CameraTargetTracker:
         self._mutex = threading.Lock()
 
         # subscribe to pose_v messages
-        self._target_pose_v_do_print_msg = False
+        self._target_pose_v_do_print_msg = True
         self._target_pose_v_msg = None
         self._target_pose_v_topic = f"/model/{self._target_model_name}/pose"
         self._target_pose_v_sub = self._node.subscribe(
@@ -454,7 +591,7 @@ class CameraTargetTracker:
         )
         self._target_pose = None
 
-        self._camera_pose_v_do_print_msg = False
+        self._camera_pose_v_do_print_msg = True
         self._camera_pose_v_msg = None
         self._camera_pose_v_topic = f"/model/{self._camera_model_name}/pose"
         self._camera_pose_v_sub = self._node.subscribe(
@@ -546,7 +683,7 @@ class CameraTargetTracker:
 
                 # projection matrix (=opencv camera_matrix)
                 camera_matrix = self._camera_info.camera_matrix
-                self._image_point = CameraTargetTracker.project_point(
+                self._image_point = PoseBasedObjectTracker.project_point(
                     camera_matrix, self._camera_pose, self._target_pose
                 )
 
@@ -708,17 +845,24 @@ class CameraTargetTracker:
 # modifications
 #   - replace hardcoded height and width with variables
 #   - replace hardcoded update period with constant
-class GimbalControl:
+class GimbalController:
     def __init__(self, connection_str):
+        # lock for shared variables (center_x and center_y)
+        self.lock = threading.Lock()
+        self.center_x = 0
+        self.center_y = 0
+        # return
+
         self.master = mavutil.mavlink_connection(connection_str)
+        print(
+            "Waiting for heartbeat from the system (system %u component %u)"
+            % (self.master.target_system, self.master.target_component)
+        )
         self.master.wait_heartbeat()
         print(
             "Heartbeat from the system (system %u component %u)"
             % (self.master.target_system, self.master.target_component)
         )
-        self.center_x = 0
-        self.center_y = 0
-        self.lock = threading.Lock()  # Initialize a lock for shared variables
         self.control_thread = threading.Thread(target=self.send_command)
         self.control_thread.start()
 
@@ -773,21 +917,28 @@ class GimbalControl:
 
 def main():
     # create an object tracker
-    camera_target_tracker = CameraTargetTracker()
+    object_tracker = PoseBasedObjectTracker(
+        world_name="playpen",
+        target_model_name="omni4rover",
+        camera_model_name="iris_with_gimbal",
+        gimbal_model_name="gimbal",
+        camera_link_name="pitch_link",
+        camera_sensor_name="camera",
+    )
 
-    # create the video object
-    video = Video(port=5600)
+    # create the video stream
+    video_stream = VideoStream(mount_point="/camera")
 
-    # gimbal controller (change UDP port to 14550)
-    gimbal_control = GimbalControl("127.0.0.1:14550")
+    # gimbal controller
+    gimbal_controller = GimbalController("127.0.0.1:14550")
 
     # app must run on the main thread
     app = wx.App()
     wx_frame = wx.Frame(None)
 
-    # create the camera panel
+    # create the image panel
     image_panel = ImagePanel(
-        wx_frame, video, camera_target_tracker, gimbal_control, fps=30
+        wx_frame, video_stream, object_tracker, gimbal_controller, fps=30
     )
 
     wx_frame.Show()
@@ -824,7 +975,7 @@ def test_project_to_screen_space():
     P = [[fx, s, cx, tx], [0, fy, cy, ty], [0, 0, 1, 0]]
     camera_matrix = np.array(P)
 
-    image_point = CameraTargetTracker.project_point(
+    image_point = PoseBasedObjectTracker.project_point(
         camera_matrix, camera_pose, target_pose
     )
     print(f"image_point: {image_point}")
@@ -832,4 +983,3 @@ def test_project_to_screen_space():
 
 if __name__ == "__main__":
     main()
-    # test_project_to_screen_space()
