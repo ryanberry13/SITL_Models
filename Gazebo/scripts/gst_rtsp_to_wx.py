@@ -216,7 +216,7 @@ class ImagePanel(wx.Panel):
 def main():
 
     # create the video stream
-    video_stream = VideoStream(mount_point="/ball")
+    video_stream = VideoStream(mount_point="/camera")
 
     # app must run on the main thread
     app = wx.App()

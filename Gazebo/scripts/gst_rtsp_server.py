@@ -10,7 +10,7 @@ python ./gst_rtsp_server.py
 
 2. Display the RTSP stream
 
-gst-launch-1.0 rtspsrc location=rtsp://localhost:8554/test latency=50 ! decodebin ! autovideosink
+gst-launch-1.0 rtspsrc location=rtsp://localhost:8554/camera latency=50 ! decodebin ! autovideosink
 
 
 Acknowledgments
@@ -78,7 +78,7 @@ class GstServer:
     """
     A GStreamer RTSP server streaming three different test patterns:
 
-    rtsp://127.0.0.1:8554/test
+    rtsp://127.0.0.1:8554/camera
     rtsp://127.0.0.1:8554/ball
     rtsp://127.0.0.1:8554/snow
     """
@@ -97,7 +97,7 @@ class GstServer:
         media_factory3.set_shared(True)
 
         mount_points = self.server.get_mount_points()
-        mount_points.add_factory("/test", media_factory1)
+        mount_points.add_factory("/camera", media_factory1)
         mount_points.add_factory("/ball", media_factory2)
         mount_points.add_factory("/snow", media_factory3)
 
