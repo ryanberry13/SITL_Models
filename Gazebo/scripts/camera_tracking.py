@@ -1,4 +1,6 @@
 """"
+Camera tracking controller 
+
 Calculate the position in pixels of a tracked object in the camera image.
 
 For testing the GSoC 2024 Camera Tracking project
@@ -276,6 +278,8 @@ class VideoStream:
 
 
 class ImagePanel(wx.Panel):
+    """ """
+
     def __init__(self, parent, video_stream, tracker, gimbal_controller, fps=30):
         wx.Panel.__init__(self, parent)
 
@@ -310,16 +314,49 @@ class ImagePanel(wx.Panel):
             self.timer = wx.Timer(self)
             self.timer.Start(int(1000 / fps))
 
+            self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
             self.Bind(wx.EVT_PAINT, self.OnPaint)
             self.Bind(wx.EVT_TIMER, self.NextFrame)
 
-    def OnPaint(self, evt):
+            # Select ROI
+            self._roi_top_left = None
+            self._roi_bot_right = None
+            self._roi_changed = False
+
+    def OnMouseEvent(self, event):
+        et = event.GetEventType()
+
+        if et == wx.wxEVT_LEFT_DOWN:
+            self._roi_top_left = event.GetPosition()
+        elif et == wx.wxEVT_LEFT_UP:
+            self._roi_bot_right = event.GetPosition()
+            self._roi_changed = True
+
+    def OnPaint(self, event):
         dc = wx.BufferedPaintDC(self)
         dc.DrawBitmap(self.bmp, 0, 0)
 
     def NextFrame(self, event):
         if self._video_stream.frame_available():
             frame = copy.deepcopy(self._video_stream.frame())
+
+            # update ROI if changed
+            if self._roi_changed:
+                self._roi_changed = False
+                x1, y1 = self._roi_top_left
+                x2, y2 = self._roi_bot_right
+                w = x2 - x1
+                h = y2 - y1
+                if w > 0 and h > 0:
+                    # normlise the roi using the panel size (assumes full frame)
+                    rect = self.GetRect()
+                    nroi = [
+                        x1 / rect.Width,
+                        y1 / rect.Height,
+                        w / rect.Width,
+                        h / rect.Height,
+                    ]
+                    self._tracker.set_normalised_roi(nroi)
 
             # update tracker with frame and get box
             success, box = self._tracker.update(frame)
@@ -336,7 +373,8 @@ class ImagePanel(wx.Panel):
                 # update gimbal controller
                 self._gimbal_controller.update_center(u, v)
             else:
-                print("Tracking failure detected.")
+                pass
+                # print("Tracking failure detected.")
 
             # Convert frame to bitmap for wxFrame
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -562,6 +600,9 @@ class TrackerGroundTruth:
         else:
             return False, None
 
+    def set_normalised_roi(self, nroi):
+        pass
+
     def body_to_world(self, pose_v_msg, world, body):
         """
         Calculate the transform from body to world from a pose_v_msg
@@ -720,25 +761,35 @@ class TrackerCSTR:
 
     def __init__(self):
         self._tracker = cv2.legacy.TrackerCSRT_create()
-        self._initialised = False
-        self._roi = None
+        self._nroi = None
+        self._nroi_changed = False
 
     def update(self, frame):
-        if self._roi is None or frame is None:
+        if self._nroi is None or frame is None:
             return False, None
 
-        if not self._initialised:
-            self._tracker.init(frame, self._roi)
-            self._initialised = True
+        if self._nroi_changed:
+            self._tracker = cv2.legacy.TrackerCSRT_create()
+            # denomalise the roi
+            height, width, _ = frame.shape
+            roi = [
+                int(self._nroi[0] * width),
+                int(self._nroi[1] * height),
+                int(self._nroi[2] * width),
+                int(self._nroi[3] * height),
+            ]
+            print(f"TrackerCSTRL updating ROI: {roi}")
+            self._tracker.init(frame, roi)
+            self._nroi_changed = False
 
         return self._tracker.update(frame)
 
-    def set_roi(self, roi):
+    def set_normalised_roi(self, nroi):
         """
         Set the region of interest
         """
-        self._roi = roi
-        self._initialised = False
+        self._nroi = nroi
+        self._nroi_changed = True
 
 
 class TrackerYOLOv8n:
@@ -891,8 +942,7 @@ def main():
         camera_sensor_name="camera",
     )
 
-    # tracker = TrackerCSTR()
-    # tracker.set_roi([320, 230, 40, 20])
+    tracker = TrackerCSTR()
 
     # tracker = TrackerMOG2()
     # tracker = TrackerYOLOv8n()
