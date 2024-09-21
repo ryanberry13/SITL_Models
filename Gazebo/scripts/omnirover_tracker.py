@@ -140,6 +140,7 @@ from transforms3d import affines
 from transforms3d import euler
 from transforms3d import quaternions
 
+from ultralytics import YOLO
 
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst
@@ -275,11 +276,11 @@ class VideoStream:
 
 
 class ImagePanel(wx.Panel):
-    def __init__(self, parent, video_stream, object_tracker, gimbal_controller, fps=30):
+    def __init__(self, parent, video_stream, tracker, gimbal_controller, fps=30):
         wx.Panel.__init__(self, parent)
 
         self._video_stream = video_stream
-        self._object_tracker = object_tracker
+        self._tracker = tracker
         self._gimbal_controller = gimbal_controller
 
         # Shared between threads
@@ -321,8 +322,7 @@ class ImagePanel(wx.Panel):
             frame = copy.deepcopy(self._video_stream.frame())
 
             # update tracker with frame and get box
-            self._object_tracker.update(frame)
-            success, box = self._object_tracker.box()
+            success, box = self._tracker.update(frame)
             if success:
                 (x, y, w, h) = [int(v) for v in box]
                 x1 = x
@@ -418,9 +418,12 @@ class CameraInformation:
         return np.array(P)
 
 
-class PoseBasedObjectTracker:
+class TrackerGroundTruth:
     """
     Calculate the position in pixels of a tracked object in the camera image.
+
+    Use the published pose of the target and camera (ground truth) to calculate
+    the image point.
     """
 
     def __init__(
@@ -523,18 +526,14 @@ class PoseBasedObjectTracker:
         if self._camera_pose_v_msg is not None:
             world = self._world_name
             body = self._camera_frame_id
-            self._camera_pose = self.body_to_world(
-                self._camera_pose_v_msg, world, body
-            )
+            self._camera_pose = self.body_to_world(self._camera_pose_v_msg, world, body)
             # print(self._camera_pose)
             # print()
 
         if self._target_pose_v_msg is not None:
             world = self._world_name
             body = self._target_frame_id
-            self._target_pose = self.body_to_world(
-                self._target_pose_v_msg, world, body
-            )
+            self._target_pose = self.body_to_world(self._target_pose_v_msg, world, body)
             # print(self._target_pose)
             # print()
 
@@ -548,9 +547,20 @@ class PoseBasedObjectTracker:
 
             # projection matrix (=opencv camera_matrix)
             camera_matrix = self._camera_info.camera_matrix
-            self._image_point = PoseBasedObjectTracker.project_point(
+            self._image_point = TrackerGroundTruth.project_point(
                 camera_matrix, self._camera_pose, self._target_pose
             )
+            u = self._image_point[0]
+            v = self._image_point[1]
+            w = 50.0
+            h = 50.0
+            x = u - 0.5 * w
+            y = v - 0.5 * h
+            box = [x, y, w, h]
+            return True, box
+
+        else:
+            return False, None
 
     def body_to_world(self, pose_v_msg, world, body):
         """
@@ -606,16 +616,6 @@ class PoseBasedObjectTracker:
 
     def image_point(self):
         return self._image_point
-
-    def box(self):
-        u = self._image_point[0]
-        v = self._image_point[1]
-        w = 50.0
-        h = 50.0
-        x = u - 0.5 * w
-        y = v - 0.5 * h
-        box = [x, y, w, h]
-        return True, box
 
     @staticmethod
     def project_point(camera_matrix, camera_pose, target_pose):
@@ -713,16 +713,96 @@ class PoseBasedObjectTracker:
         return [u, v]
 
 
-class CSTRObjectTracker:
+class TrackerCSTR:
+    """
+    Wrapper for cv2.legacy.TrackerCSRT
+    """
+
     def __init__(self):
-        self._image_point = [0, 0]
-        self.tracker = cv2.legacy.TrackerCSRT_create()
+        self._tracker = cv2.legacy.TrackerCSRT_create()
+        self._initialised = False
+        self._roi = None
 
     def update(self, frame):
-        pass
+        if self._roi is None or frame is None:
+            return False, None
 
-    def image_point(self):
-        return self._image_point
+        if not self._initialised:
+            self._tracker.init(frame, self._roi)
+            self._initialised = True
+
+        return self._tracker.update(frame)
+
+    def set_roi(self, roi):
+        """
+        Set the region of interest
+        """
+        self._roi = roi
+        self._initialised = False
+
+
+class TrackerYOLOv8n:
+    def __init__(self):
+        # Load a pretrained YOLO model.
+        self._model = YOLO("yolov8n.pt")
+
+        # Display model information.
+        self._model.info()
+
+    def update(self, frame):
+        # Object detection
+        results = self._model.track(frame, stream=True)
+        for r in results:
+            boxes = r.boxes
+            for box in boxes:
+                cls = int(box.cls)
+                name = self._model.names[cls]
+                if not (name == "skateboard" or name == "truck"):
+                    continue
+
+                print(f"Classification is: {name}, [{box.conf}]")
+                return True, box.xywh[0]
+
+        return False, None
+
+
+class TrackerMOG2:
+    """
+    https://medium.com/@MrBam44/object-tracking-with-opencv-and-python-7db8b233fab6
+    """
+
+    def __init__(self):
+        self._detector = cv2.createBackgroundSubtractorMOG2(
+            history=100, varThreshold=50
+        )
+
+    def update(self, frame):
+        # Frame size
+        height, width, _ = frame.shape
+
+        # Extract region of interest
+        roi = frame[0:height, 0:width]
+
+        # Object detection
+        mask = self._detector.apply(roi)
+        _, mask = cv2.threshold(mask, 254, 255, cv2.THRESH_BINARY)
+        contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Debug contours
+        for cnt in contours:
+            # Calculate area and remove small elements
+            area = cv2.contourArea(cnt)
+            if area > 100:
+                # Draw contour
+                cv2.drawContours(roi, [cnt], -1, (0, 255, 0), 2)
+
+                # Draw bounding rectangle
+                x, y, w, h = cv2.boundingRect(cnt)
+                box = [x, y, w, h]
+                cv2.rectangle(roi, (x, y), (x + w, y + h), (0, 255, 0), 3)
+                return True, box
+
+        return False, None
 
 
 # from ardupilot/libraries/AP_Camera/examples/tracking.py
@@ -802,7 +882,7 @@ class GimbalController:
 
 def main():
     # create an object tracker
-    object_tracker = PoseBasedObjectTracker(
+    tracker = TrackerGroundTruth(
         world_name="playpen",
         target_model_name="omni4rover",
         camera_model_name="iris_with_gimbal",
@@ -810,6 +890,12 @@ def main():
         camera_link_name="pitch_link",
         camera_sensor_name="camera",
     )
+
+    # tracker = TrackerCSTR()
+    # tracker.set_roi([320, 230, 40, 20])
+
+    # tracker = TrackerMOG2()
+    # tracker = TrackerYOLOv8n()
 
     # create the video stream
     video_stream = VideoStream(mount_point="/camera")
@@ -822,9 +908,7 @@ def main():
     wx_frame = wx.Frame(None)
 
     # create the image panel
-    image_panel = ImagePanel(
-        wx_frame, video_stream, object_tracker, gimbal_controller, fps=30
-    )
+    image_panel = ImagePanel(wx_frame, video_stream, tracker, gimbal_controller, fps=30)
 
     wx_frame.Show()
     app.MainLoop()
@@ -860,7 +944,7 @@ def test_project_to_screen_space():
     P = [[fx, s, cx, tx], [0, fy, cy, ty], [0, 0, 1, 0]]
     camera_matrix = np.array(P)
 
-    image_point = PoseBasedObjectTracker.project_point(
+    image_point = TrackerGroundTruth.project_point(
         camera_matrix, camera_pose, target_pose
     )
     print(f"image_point: {image_point}")
