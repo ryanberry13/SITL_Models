@@ -778,7 +778,7 @@ class TrackerCSTR:
                 int(self._nroi[2] * width),
                 int(self._nroi[3] * height),
             ]
-            print(f"TrackerCSTRL updating ROI: {roi}")
+            print(f"TrackerCSTRL: ROI: {roi}")
             self._tracker.init(frame, roi)
             self._nroi_changed = False
 
@@ -956,6 +956,7 @@ def main():
     # app must run on the main thread
     app = wx.App()
     wx_frame = wx.Frame(None)
+    wx_frame.Title = "Camera Tracking"
 
     # create the image panel
     image_panel = ImagePanel(wx_frame, video_stream, tracker, gimbal_controller, fps=30)
