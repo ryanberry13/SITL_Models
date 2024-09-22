@@ -318,19 +318,26 @@ class ImagePanel(wx.Panel):
             self.Bind(wx.EVT_PAINT, self.OnPaint)
             self.Bind(wx.EVT_TIMER, self.NextFrame)
 
-            # Select ROI
-            self._roi_top_left = None
-            self._roi_bot_right = None
+            # ROI editing
+            self._roi_new = None
+            self._roi_new_top_left = None
+            self._roi_new_bot_right = None
+            self._roi_editing = False
             self._roi_changed = False
 
     def OnMouseEvent(self, event):
         et = event.GetEventType()
 
         if et == wx.wxEVT_LEFT_DOWN:
-            self._roi_top_left = event.GetPosition()
+            self._roi_new_top_left = event.GetPosition()
+            self._roi_editing = True
         elif et == wx.wxEVT_LEFT_UP:
-            self._roi_bot_right = event.GetPosition()
+            self._roi_new_bot_right = event.GetPosition()
+            self._roi_editing = False
             self._roi_changed = True
+
+        if self._roi_editing:
+            self._roi_new_bot_right = event.GetPosition()
 
     def OnPaint(self, event):
         dc = wx.BufferedPaintDC(self)
@@ -340,23 +347,28 @@ class ImagePanel(wx.Panel):
         if self._video_stream.frame_available():
             frame = copy.deepcopy(self._video_stream.frame())
 
-            # update ROI if changed
-            if self._roi_changed:
-                self._roi_changed = False
-                x1, y1 = self._roi_top_left
-                x2, y2 = self._roi_bot_right
+            if self._roi_editing:
+                x1, y1 = self._roi_new_top_left
+                x2, y2 = self._roi_new_bot_right
                 w = x2 - x1
                 h = y2 - y1
                 if w > 0 and h > 0:
-                    # normlise the roi using the panel size (assumes full frame)
-                    rect = self.GetRect()
-                    nroi = [
-                        x1 / rect.Width,
-                        y1 / rect.Height,
-                        w / rect.Width,
-                        h / rect.Height,
-                    ]
-                    self._tracker.set_normalised_roi(nroi)
+                    self._roi_new = [x1, y1, w, h]
+                    # Draw the new ROI in red
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 1)
+
+            if self._roi_changed:
+                x, y, w, h = self._roi_new
+                self._roi_new = None
+                self._roi_changed = False
+                rect = self.GetRect()
+                nroi = [
+                    x / rect.Width,
+                    y / rect.Height,
+                    w / rect.Width,
+                    h / rect.Height,
+                ]
+                self._tracker.set_normalised_roi(nroi)
 
             # update tracker with frame and get box
             success, box = self._tracker.update(frame)
