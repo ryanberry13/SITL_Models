@@ -280,16 +280,15 @@ class VideoStream:
 class ImagePanel(wx.Panel):
     """ """
 
-    def __init__(self, parent, video_stream, tracker, gimbal_controller, fps=30):
+    def __init__(
+        self, parent, video_stream, detector, tracker, gimbal_controller, fps=30
+    ):
         wx.Panel.__init__(self, parent)
 
         self._video_stream = video_stream
+        self._detector = detector
         self._tracker = tracker
         self._gimbal_controller = gimbal_controller
-
-        # Shared between threads
-        self._frame_lock = threading.Lock()
-        self._latest_frame = None
 
         print("Waiting for video stream...")
         waited = 0
@@ -314,30 +313,50 @@ class ImagePanel(wx.Panel):
             self.timer = wx.Timer(self)
             self.timer.Start(int(1000 / fps))
 
+            self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
+            self.Bind(wx.EVT_KEY_UP, self.OnKeyUp)
             self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
             self.Bind(wx.EVT_PAINT, self.OnPaint)
             self.Bind(wx.EVT_TIMER, self.NextFrame)
 
             # ROI editing
+            self._roi_lock = threading.Lock()
+            self._roi = None
             self._roi_new = None
             self._roi_new_top_left = None
             self._roi_new_bot_right = None
             self._roi_editing = False
             self._roi_changed = False
+            self._shiftdown = False
+
+    def OnKeyDown(self, event):
+        keycode = event.GetKeyCode()
+        if keycode == wx.WXK_SHIFT:
+            self._shiftdown = True
+
+    def OnKeyUp(self, event):
+        keycode = event.GetKeyCode()
+        if keycode == wx.WXK_SHIFT:
+            self._shiftdown = False
 
     def OnMouseEvent(self, event):
         et = event.GetEventType()
 
-        if et == wx.wxEVT_LEFT_DOWN:
-            self._roi_new_top_left = event.GetPosition()
-            self._roi_editing = True
-        elif et == wx.wxEVT_LEFT_UP:
-            self._roi_new_bot_right = event.GetPosition()
-            self._roi_editing = False
-            self._roi_changed = True
+        with self._roi_lock:
+            if et == wx.wxEVT_LEFT_DOWN and self._shiftdown:
+                    self._roi_new_top_left = event.GetPosition()
+                    self._roi_editing = True
+            elif et == wx.wxEVT_LEFT_UP and self._roi_editing:
+                    self._roi_editing = False
+                    self._roi_changed = True
 
-        if self._roi_editing:
-            self._roi_new_bot_right = event.GetPosition()
+            if self._roi_editing:
+                self._roi_new_bot_right = event.GetPosition()
+                x1, y1 = self._roi_new_top_left
+                x2, y2 = self._roi_new_bot_right
+                w = max(x2 - x1, 10)
+                h = max(y2 - y1, 10)
+                self._roi_new = [x1, y1, w, h]
 
     def OnPaint(self, event):
         dc = wx.BufferedPaintDC(self)
@@ -347,20 +366,19 @@ class ImagePanel(wx.Panel):
         if self._video_stream.frame_available():
             frame = copy.deepcopy(self._video_stream.frame())
 
-            if self._roi_editing:
-                x1, y1 = self._roi_new_top_left
-                x2, y2 = self._roi_new_bot_right
-                w = x2 - x1
-                h = y2 - y1
-                if w > 0 and h > 0:
-                    self._roi_new = [x1, y1, w, h]
-                    # Draw the new ROI in red
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 1)
+            # copy shared variables
+            with self._roi_lock:
+                roi_editing = self._roi_editing
+                roi_changed = self._roi_changed
+                roi_new = self._roi_new
+                roi = self._roi
 
-            if self._roi_changed:
-                x, y, w, h = self._roi_new
-                self._roi_new = None
-                self._roi_changed = False
+            if roi_editing:
+                x, y, w, h = roi_new
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 1)
+
+            if roi_changed:
+                x, y, w, h = roi_new
                 rect = self.GetRect()
                 nroi = [
                     x / rect.Width,
@@ -369,29 +387,57 @@ class ImagePanel(wx.Panel):
                     h / rect.Height,
                 ]
                 self._tracker.set_normalised_roi(nroi)
+                with self._roi_lock:
+                    self._roi = roi_new
+                    self._roi_new = None
+                    self._roi_changed = False
+
+            # update detector
+            self._detector.update(frame)
 
             # update tracker with frame and get box
-            success, box = self._tracker.update(frame)
-            if success:
-                (x, y, w, h) = [int(v) for v in box]
-                x1 = x
-                y1 = y
-                x2 = x1 + w
-                y2 = y1 + h
-                u = x1 + w // 2
-                v = y1 + h // 2
-                # draw box around target
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)
-                # update gimbal controller
-                self._gimbal_controller.update_center(u, v)
-            else:
-                pass
-                # print("Tracking failure detected.")
+            if roi is not None:
+                success, box = self._tracker.update(frame)
+                # success = True
+                # box = roi
+                if success:
+                    (x, y, w, h) = [int(v) for v in box]
+                    x1 = x
+                    y1 = y
+                    x2 = x1 + w
+                    y2 = y1 + h
+                    u = x1 + w // 2
+                    v = y1 + h // 2
+                    # draw box around target
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)
+                    cv2.putText(
+                        frame,
+                        "target",
+                        (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_PLAIN,
+                        0.8,
+                        (0, 255, 0),
+                        1,
+                    )
+                    # update gimbal controller
+                    self._gimbal_controller.update_center(frame, u, v)
+                else:
+                    print("Tracking failure detected.")
+                    self.ResetTracker()
+
 
             # Convert frame to bitmap for wxFrame
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.bmp.CopyFromBuffer(frame)
             self.Refresh()
+
+    def ResetTracker(self):
+        self._gimbal_controller.reset()
+        with self._roi_lock:
+            self._roi_editing = False
+            self._roi_changed = False
+            self._roi = None
+            self._roi_new = None
 
 
 class Pose:
@@ -815,18 +861,56 @@ class TrackerYOLOv8n:
     def update(self, frame):
         # Object detection
         results = self._model.track(frame, stream=True)
+        roi = None
         for r in results:
             boxes = r.boxes
             for box in boxes:
                 cls = int(box.cls)
                 name = self._model.names[cls]
-                if not (name == "skateboard" or name == "truck"):
-                    continue
+                # if not (name == "skateboard" or name == "truck"):
+                #     continue
 
                 print(f"Classification is: {name}, [{box.conf}]")
-                return True, box.xywh[0]
+                roi = box.xywh[0]
 
-        return False, None
+        if roi is not None:
+            return True, roi
+        else:
+            return False, None
+
+    def set_normalised_roi(self, nroi):
+        pass
+
+
+class DetectorYOLOv8n:
+    def __init__(self):
+        # Load a pretrained YOLO model.
+        self._model = YOLO("yolov8n.pt")
+
+        # Display model information.
+        self._model.info()
+
+    def update(self, frame):
+        """
+        Object detection and annotation
+        """
+        results = self._model.track(frame, stream=True)
+        for r in results:
+            boxes = r.boxes
+            for box in boxes:
+                cls = int(box.cls)
+                name = self._model.names[cls]
+                x, y, w, h = [int(v) for v in box.xywh[0]]
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 1)
+                cv2.putText(
+                    frame,
+                    f"{name} [{box.conf[0]:.2f}]",
+                    (x, y - 10),
+                    cv2.FONT_HERSHEY_PLAIN,
+                    0.8,
+                    (255, 0, 0),
+                    1,
+                )
 
 
 class TrackerMOG2:
@@ -877,11 +961,21 @@ class GimbalController:
     def __init__(self, connection_str):
         # lock for shared variables (center_x and center_y)
         self.lock = threading.Lock()
-        self.center_x = 0
-        self.center_y = 0
-        # return
+        self._center_x = 0
+        self._center_y = 0
+        self._width = None
+        self._height = None
+        self._tracking = False
+
+        self._pitch_controller = PI_controller(Pgain=0.1, Igain=0.0, IMAX=5.0)
+        self._yaw_controller = PI_controller(Pgain=0.1, Igain=0.0, IMAX=5.0)
+
+        # IDs of this system and component
+        self._gimbal_ctrl_system = 245
+        self._gimbal_ctrl_component = 0
 
         self.master = mavutil.mavlink_connection(connection_str)
+
         print(
             "Waiting for heartbeat from the system (system %u component %u)"
             % (self.master.target_system, self.master.target_component)
@@ -893,9 +987,6 @@ class GimbalController:
         )
         self.control_thread = threading.Thread(target=self.send_command)
         self.control_thread.start()
-
-        self._width = 640
-        self._height = 480
 
     def send_gimbal_manager_pitch_yaw_angles(self, pitch, yaw, pitch_rate, yaw_rate):
         msg = self.master.mav.gimbal_manager_set_pitchyaw_encode(
@@ -915,19 +1006,36 @@ class GimbalController:
             start_time = time.time()  # Record the start time of the loop
 
             with self.lock:  # Lock when accessing shared variables
-                centre_x_copy = int(self.center_x)
-                centre_y_copy = int(self.center_y)
+                centre_x = int(self._center_x)
+                centre_y = int(self._center_y)
+                width = self._width
+                height = self._height
+                tracking = self._tracking
 
-            if centre_x_copy == 0 and centre_y_copy == 0:
-                diff_x = 0
-                diff_y = 0
+            if not tracking:
+                self.send_gimbal_manager_pitch_yaw_angles(
+                    0.0, 0.0, float("NaN"), float("NaN")
+                )
             else:
-                diff_x = (centre_x_copy - (self._width / 2)) / 2
-                diff_y = -(centre_y_copy - (self._height / 2)) / 2
+                if centre_x == 0 and centre_y == 0:
+                    diff_x = 0
+                    diff_y = 0
+                else:
+                    diff_x = (centre_x - (width / 2)) / 2
+                    diff_y = -(centre_y - (height / 2)) / 2
 
-            self.send_gimbal_manager_pitch_yaw_angles(
-                float("NaN"), float("NaN"), math.radians(diff_y), math.radians(diff_x)
-            )
+                err_pitch = math.radians(diff_y)
+                pitch_rate_rads = self._pitch_controller.run(err_pitch)
+
+                err_yaw = math.radians(diff_x)
+                yaw_rate_rads = self._yaw_controller.run(err_yaw)
+
+                self.send_gimbal_manager_pitch_yaw_angles(
+                    float("NaN"),
+                    float("NaN"),
+                    pitch_rate_rads,
+                    yaw_rate_rads,
+                )
 
             # 50Hz
             update_period = 0.02
@@ -937,10 +1045,87 @@ class GimbalController:
             )  # Ensure no negative sleep time
             time.sleep(sleep_time)
 
-    def update_center(self, x, y):
+    def update_center(self, frame, x, y):
         with self.lock:  # Lock when updating shared variables
-            self.center_x = x
-            self.center_y = y
+            self._tracking = True
+            self._center_x = x
+            self._center_y = y
+            self._height, self._width, _ = frame.shape
+            print(f"width: {self._width}, height: {self._height}, center: [{x}, {y}]")
+
+    def reset(self):
+        with self.lock:  # Lock when updating shared variables
+            self._tracking = False
+            self._center_x = 0
+            self._center_y = 0
+
+# MAVProxy/modules/lib/mp_util
+class mp_util:
+    @staticmethod
+    def constrain(v, minv, maxv):
+        if v < minv:
+            v = minv
+        if v > maxv:
+            v = maxv
+        return v
+
+    @staticmethod
+    def wrap_360(angle):
+        '''wrap an angle to 0..360 degrees'''
+        if angle < 0:
+            return 360.0 - math.fmod(abs(angle),360)
+        return math.fmod(angle, 360.0)
+
+    @staticmethod
+    def wrap_180(angle):
+        '''wrap an angle to -180..180 degrees'''
+        a = mp_util.wrap_360(angle)
+        if a > 180:
+            a = a - 360
+        return a
+
+
+# MAVProxy/modules/mavproxy_SIYI/PI_controller (modified)
+class PI_controller:
+    '''simple PI controller'''
+    def __init__(self, Pgain, Igain, IMAX, gain_mul=1.0, max_rate=30.0):
+        self.Pgain = Pgain
+        self.Igain = Igain
+        self.IMAX = IMAX
+        self.gain_mul = gain_mul
+        self.max_rate = max_rate
+        self.I = 0.0
+
+        # self.settings = settings
+        self.last_t = time.time()
+
+    def run(self, err, ff_rate=0.0):
+        now = time.time()
+        dt = now - self.last_t
+        if now - self.last_t > 1.0:
+            self.reset_I()
+            dt = 0
+        self.last_t = now
+        # P = self.settings.get(self.Pgain) * self.settings.gain_mul
+        # I = self.settings.get(self.Igain) * self.settings.gain_mul
+        # IMAX = self.settings.get(self.IMAX)
+        # max_rate = self.settings.max_rate
+        P = self.Pgain * self.gain_mul
+        I = self.Igain * self.gain_mul
+        IMAX = self.IMAX
+        max_rate = self.max_rate
+
+        out = P*err
+        saturated = err > 0 and (out + self.I) >= max_rate
+        saturated |= err < 0 and (out + self.I) <= -max_rate
+        if not saturated:
+            self.I += I*err*dt
+        self.I = mp_util.constrain(self.I, -IMAX, IMAX)
+        ret = out + self.I + ff_rate
+        return mp_util.constrain(ret, -max_rate, max_rate)
+
+    def reset_I(self):
+        self.I = 0    
 
 
 def main():
@@ -955,12 +1140,23 @@ def main():
     )
 
     tracker = TrackerCSTR()
-
     # tracker = TrackerMOG2()
     # tracker = TrackerYOLOv8n()
 
+    detector = DetectorYOLOv8n()
+
     # create the video stream
-    video_stream = VideoStream(mount_point="/camera")
+    video_stream = VideoStream(
+        # address="192.168.1.204",
+        # port=8554,
+        # mount_point="/fpv_stream",
+        # address="192.168.43.1",
+        # port=8554,
+        # mount_point="/fpv_stream",
+        address="127.0.0.1",
+        port=8554,
+        mount_point="/camera",
+    )
 
     # gimbal controller
     gimbal_controller = GimbalController("127.0.0.1:14550")
@@ -971,7 +1167,9 @@ def main():
     wx_frame.Title = "Camera Tracking"
 
     # create the image panel
-    image_panel = ImagePanel(wx_frame, video_stream, tracker, gimbal_controller, fps=30)
+    image_panel = ImagePanel(
+        wx_frame, video_stream, detector, tracker, gimbal_controller, fps=30
+    )
 
     wx_frame.Show()
     app.MainLoop()
