@@ -1,5 +1,5 @@
 """"
-Camera tracking controller 
+Camera tracking
 
 Calculate the position in pixels of a tracked object in the camera image.
 
@@ -967,8 +967,13 @@ class GimbalController:
         self._height = None
         self._tracking = False
 
-        self._pitch_controller = PI_controller(Pgain=0.1, Igain=0.0, IMAX=5.0)
-        self._yaw_controller = PI_controller(Pgain=0.1, Igain=0.0, IMAX=5.0)
+        # simulation
+        self._pitch_controller = PI_controller(Pgain=0.3, Igain=0.01, IMAX=1.0)
+        self._yaw_controller = PI_controller(Pgain=0.3, Igain=0.01, IMAX=1.0)
+
+        # SIYI A8
+        # self._pitch_controller = PI_controller(Pgain=0.1, Igain=0.01, IMAX=1.0)
+        # self._yaw_controller = PI_controller(Pgain=0.1, Igain=0.01, IMAX=1.0)
 
         # IDs of this system and component
         self._gimbal_ctrl_system = 245
@@ -1088,7 +1093,7 @@ class mp_util:
 # MAVProxy/modules/mavproxy_SIYI/PI_controller (modified)
 class PI_controller:
     '''simple PI controller'''
-    def __init__(self, Pgain, Igain, IMAX, gain_mul=1.0, max_rate=30.0):
+    def __init__(self, Pgain, Igain, IMAX, gain_mul=1.0, max_rate=math.radians(30.0)):
         self.Pgain = Pgain
         self.Igain = Igain
         self.IMAX = IMAX
@@ -1096,7 +1101,6 @@ class PI_controller:
         self.max_rate = max_rate
         self.I = 0.0
 
-        # self.settings = settings
         self.last_t = time.time()
 
     def run(self, err, ff_rate=0.0):
@@ -1106,10 +1110,6 @@ class PI_controller:
             self.reset_I()
             dt = 0
         self.last_t = now
-        # P = self.settings.get(self.Pgain) * self.settings.gain_mul
-        # I = self.settings.get(self.Igain) * self.settings.gain_mul
-        # IMAX = self.settings.get(self.IMAX)
-        # max_rate = self.settings.max_rate
         P = self.Pgain * self.gain_mul
         I = self.Igain * self.gain_mul
         IMAX = self.IMAX
