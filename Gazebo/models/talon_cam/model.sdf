@@ -38,7 +38,7 @@
           </clip>
         </camera>
         <always_on>1</always_on>
-        <update_rate>5.5</update_rate>
+        <update_rate>1</update_rate>
         <visualize>true</visualize>
         <topic>rgb_camera</topic>
       </sensor>
@@ -62,7 +62,7 @@
           </thermal>
         </camera>
         <always_on>1</always_on>
-        <update_rate>30</update_rate>
+        <update_rate>1</update_rate>
         <visualize>true</visualize>
         <topic>thermal_camera</topic>
       </sensor>
